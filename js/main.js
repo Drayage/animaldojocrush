@@ -1,11 +1,11 @@
-import { APP_VERSION } from "./app-config.js";
+import { APP_VERSION } from "./app-config.js?v=20260710-5";
 import { initAudio, playSfx } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
 import { PASTEL as palette } from "./palettes.js";
 import { getAiIntent } from "./ai.js";
 import { chooseWinnerReward, createGame, loserAction, masterCard, playCard, reviveGame, setInputLocked } from "./engine.js";
-import { render } from "./ui.js";
+import { render } from "./ui.js?v=20260710-5";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");
@@ -73,6 +73,13 @@ gameArea.addEventListener("click", handleClick);
 actionBar.addEventListener("click", handleClick);
 
 if (!CSS.supports("height", "100dvh")) { const setVh = () => { document.body.style.height = `${window.innerHeight}px`; }; setVh(); window.addEventListener("resize", setVh); }
-if ("serviceWorker" in navigator) { navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`); }
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`, { updateViaCache: "none" }).then((registration) => registration.update());
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (sessionStorage.getItem("sw-reloaded") === APP_VERSION) return;
+    sessionStorage.setItem("sw-reloaded", APP_VERSION);
+    location.reload();
+  });
+}
 draw();
 if (ui.screen === "game") runAiIfNeeded();
