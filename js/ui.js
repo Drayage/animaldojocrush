@@ -144,7 +144,8 @@ function marketContent(state) {
   const activePlayer = state.players.find((player) => player.id === state.pending.loserActionPlayerId);
   const canBuy = state.phase === PHASES.WAITING_FOR_LOSER_ACTION && activePlayer?.human && !state.inputLocked;
   const human = state.players.find((player) => player.human);
-  return `<div class="market-summary"><span>보유 경험치 <b>${activePlayer?.human ? activePlayer.experience : human.experience}</b></span><small>${canBuy ? "기술 1장을 선택하세요" : "패배 보상 차례에 수련 가능"}</small></div><div class="market-grid">${MARKET_CARD_IDS.map((id) => {
+  const availableCardIds = MARKET_CARD_IDS.filter((id) => state.market[id] > 0);
+  return `<div class="market-summary"><span>보유 경험치 <b>${activePlayer?.human ? activePlayer.experience : human.experience}</b></span><small>${canBuy ? "기술 1장을 선택하세요" : "패배 보상 차례에 수련 가능"}</small></div><div class="market-grid">${availableCardIds.map((id) => {
     const definition = CARD_DEFINITIONS[id];
     const stock = state.market[id];
     const disabled = !canBuy || stock <= 0 || activePlayer.experience < definition.cost || activePlayer.boughtThisDuel;
@@ -157,7 +158,24 @@ function marketContent(state) {
         <strong>${esc(definition.name)}</strong>
         <span class="market-meta"><b class="cost-badge">🔵 ${definition.cost}</b><small>재고 ${stock}</small></span>
       </button>`;
-  }).join("")}</div>`;
+  }).join("") || `<p class="market-empty">수련 가능한 기술이 모두 소진되었습니다.</p>`}</div>`;
+}
+
+function latestRewardDecision(state) {
+  const decision = state.rewardHistory?.[0];
+  if (!decision || decision.duelNumber < state.duelNumber - 1) return null;
+  const player = state.players.find((item) => item.id === decision.playerId);
+  if (!player) return null;
+  return { ...decision, player };
+}
+
+function rewardDecisionHtml(state, { compact = false } = {}) {
+  const decision = latestRewardDecision(state);
+  if (!decision) return "";
+  const detail = decision.choice === "fame"
+    ? `<strong>명성 +${decision.amount}</strong><span>명성 획득 선택</span>`
+    : `<strong>${esc(decision.cardName)}</strong><span>기술 체득(덱에서 제거) 선택</span>`;
+  return `<section class="reward-decision ${compact ? "compact" : ""}" aria-label="최근 승자 선택"><span class="decision-avatar">${decision.player.portrait}</span><div><small>대련 ${decision.duelNumber} · ${esc(decision.player.name)}의 승자 선택</small>${detail}</div></section>`;
 }
 
 function pileSection(title, cards, emptyText, note = "") {
@@ -180,7 +198,7 @@ function overlayPanel(state, ui) {
 }
 
 function modalHtml(state) {
-  if (state.inputLocked) return `<div class="modal"><div class="modal-box small"><div class="loader">🥋</div><h2>상대가 생각 중입니다</h2></div></div>`;
+  if (state.inputLocked) return `<div class="modal"><div class="modal-box small"><div class="loader">🥋</div><h2>상대가 생각 중입니다</h2>${rewardDecisionHtml(state, { compact: true })}</div></div>`;
   const human = state.players.find((player) => player.human);
   if (state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id) {
     const play = state.duel.plays.find((item) => item.playerId === human.id);
@@ -208,5 +226,5 @@ export function render(state, ui) {
   };
   if (view.screen === "start") return startScreen(state, view);
   const vanguard = state.players.find((player) => player.id === state.vanguardPlayerId);
-  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header><section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
+  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header>${rewardDecisionHtml(state)}<section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
 }

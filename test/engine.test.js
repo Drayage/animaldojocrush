@@ -67,6 +67,8 @@ test("winner chooses either fame or mastery, including just played normal card",
   state = chooseWinnerReward(state, "mastery");
   state = masterCard(state, candidates.find((card) => card.zone === "play").id);
   assert.equal(state.players[0].fame, 0);
+  assert.equal(state.rewardHistory[0].choice, "mastery");
+  assert.equal(state.rewardHistory[0].playerId, "player-1");
 });
 
 test("exhaust cards cannot be mastered and reusable floor is enforced", () => {
@@ -109,6 +111,9 @@ test("experience can train fame and reaching 50 ends immediately", () => {
   state = playFirstCard(state, "player-2");
   state = playFirstCard(state, "player-3");
   state = chooseWinnerReward(state, "fame");
+  assert.equal(state.rewardHistory[0].choice, "fame");
+  assert.equal(state.rewardHistory[0].amount, 5);
+  assert.match(render(state, { screen: "game", panel: null }), /명성 획득 선택/);
   state = loserAction(state, state.pending.loserActionPlayerId, { type: "train-fame" });
   assert.equal(state.phase, PHASES.GAME_OVER);
   assert.equal(state.winnerId, "player-2");
@@ -165,4 +170,12 @@ test("my card panel shows deck and discarded cards while a human turn highlights
   assert.match(html, /버린 카드 · 휴식 더미/);
   assert.match(html, /hand-panel ready/);
   assert.match(html, /내 차례 · 기술 선택/);
+});
+
+test("sold out techniques are omitted from the training market", () => {
+  const state = createGame({ playerCount: 2, seed: 11 });
+  state.market.combo_stance = 0;
+  const html = render(state, { screen: "game", panel: "market" });
+  assert.doesNotMatch(html, /data-card-definition-id="combo_stance"/);
+  assert.match(html, /data-card-definition-id="bunny_kick"/);
 });
