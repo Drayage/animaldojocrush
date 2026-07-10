@@ -1,0 +1,409 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #f5ead8;
+  color: #2d241b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  padding: 14px;
+  background:
+    linear-gradient(90deg, rgba(122, 87, 46, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
+    linear-gradient(#f8efd9, #e8cfa9);
+}
+
+.topbar,
+.players,
+.arena,
+.hand-panel,
+.market,
+.log,
+.modal-box {
+  border: 2px solid #7d5731;
+  background: rgba(255, 252, 242, 0.94);
+  box-shadow: 0 6px 0 rgba(91, 57, 24, 0.18);
+}
+
+.topbar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 8px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+.topbar p {
+  margin-top: 4px;
+  color: #654d35;
+}
+
+.top-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-actions span,
+.badge {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #ffe08a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.top-actions button,
+.modal-actions button,
+dialog button {
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: #fff;
+  background: #2f7d6e;
+  font-weight: 800;
+}
+
+.players {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.player {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 2px solid color-mix(in srgb, var(--accent), #352417 30%);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent), white 82%);
+}
+
+.player.acting {
+  outline: 4px solid #ffd34e;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 2rem;
+}
+
+.player-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.badge.neutral {
+  background: #dfe4ea;
+}
+
+.meters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+
+.meters span,
+.mini-hand,
+.played-mini {
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.arena,
+.hand-panel,
+.market,
+.log {
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.arena-head,
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.plays,
+.hand,
+.market-grid,
+.mastery-list {
+  display: grid;
+  gap: 10px;
+}
+
+.plays {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.play-stack {
+  padding: 10px;
+  border: 2px dashed #b7834b;
+  border-radius: 8px;
+  background: #fff8e9;
+}
+
+.play-stack.winner {
+  border-style: solid;
+  background: #fff1ad;
+}
+
+.combo-line {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.card,
+.market-card,
+.mastery-list button {
+  min-height: 128px;
+  display: grid;
+  align-content: space-between;
+  gap: 6px;
+  padding: 10px;
+  border: 2px solid #406057;
+  border-radius: 8px;
+  background: #f7fff8;
+  color: #23342f;
+  text-align: left;
+}
+
+.card {
+  min-width: 128px;
+}
+
+.card:hover:not(:disabled),
+.market-card:hover:not(:disabled),
+.mastery-list button:hover {
+  transform: translateY(-2px);
+}
+
+.card.disabled,
+.card:disabled,
+.market-card:disabled {
+  opacity: 0.58;
+}
+
+.card.back {
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(45deg, #7d5731, #7d5731 8px, #a77a47 8px, #a77a47 16px);
+  color: #fff;
+}
+
+.card.combo,
+.market-card:has(small) {
+  border-color: #1d7fa5;
+}
+
+.card.exhaust,
+.market-card.exhaust {
+  border-color: #c0392b;
+  background: #fff0ed;
+}
+
+.power {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ffe08a;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.final-power,
+.victory {
+  font-weight: 900;
+}
+
+.victory {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #ffe08a;
+  text-align: center;
+}
+
+.lower {
+  display: grid;
+  gap: 14px;
+}
+
+.hand {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.market-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.log {
+  max-height: calc(100vh - 142px);
+  overflow: auto;
+}
+
+.log h2 {
+  margin-bottom: 8px;
+}
+
+.log p {
+  padding: 8px 0;
+  border-bottom: 1px solid #ead6b8;
+  font-size: 0.92rem;
+}
+
+.empty {
+  padding: 18px;
+  border: 2px dashed #b7834b;
+  border-radius: 8px;
+  color: #74573a;
+  text-align: center;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(45, 36, 27, 0.42);
+}
+
+.modal-box {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 8px;
+}
+
+.modal-box.wide {
+  width: min(760px, 100%);
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.modal-actions button:disabled {
+  background: #9b9b9b;
+}
+
+.mastery-list {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+dialog {
+  max-width: 520px;
+  border: 2px solid #7d5731;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+dialog::backdrop {
+  background: rgba(45, 36, 27, 0.42);
+}
+
+@media (max-width: 900px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  .log {
+    max-height: 260px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app {
+    padding: 8px;
+  }
+
+  .player {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .played-mini {
+    grid-column: 1 / -1;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1.55rem;
+  }
+
+  .card,
+  .market-card {
+    min-height: 112px;
+  }
+}

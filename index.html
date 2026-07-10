@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>우당탕 동물도장</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-180.png" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script>
+    window.deferredInstallPrompt = null;
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      window.deferredInstallPrompt = event;
+    });
+  </script>
+</head>
+<body>
+  <div id="game-area"></div>
+  <div id="action-bar"></div>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
