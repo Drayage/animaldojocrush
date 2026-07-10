@@ -6,13 +6,12 @@ function sumPlayers(state, selector) {
 }
 
 export function getSoundEvents(previous, next, action) {
-  const events = [];
   if (action.type === GAME_ACTIONS.PLAY_CARD) {
     const play = next.duel.plays.find((item) => item.playerId === action.playerId);
-    events.push("card");
-    if (play?.cards.length > 1) events.push("combo");
-    if (play?.cards.some((card) => cardDef(card).exhausts)) events.push("exhaust");
-    if (!previous.duel.winnerId && next.duel.winnerId) events.push("duelWin");
+    const primary = play?.cards.length > 1
+      ? "combo"
+      : play?.cards.some((card) => cardDef(card).exhausts) ? "exhaust" : "card";
+    return !previous.duel.winnerId && next.duel.winnerId ? [primary, "duelWin"] : [primary];
   }
 
   const fameGain = sumPlayers(next, (player) => player.fame) - sumPlayers(previous, (player) => player.fame);
@@ -25,14 +24,15 @@ export function getSoundEvents(previous, next, action) {
     || (action.type === GAME_ACTIONS.MILESTONE_MASTERY && action.cardId)
     || (action.type === GAME_ACTIONS.MILESTONE_FALLBACK && action.cardId);
 
-  if (milestoneGain > 0) events.push("milestone");
-  if (stockSpent > 0) events.push("buy");
-  if (masteredGain > 0 || selectedMastery) events.push("mastery");
-  if (fameGain > 0) events.push("fame");
-  if (experienceGain > 0) events.push("experience");
-  if (previous.phase !== "GAME_OVER" && next.phase === "GAME_OVER") events.push("champion");
+  if (previous.phase !== "GAME_OVER" && next.phase === "GAME_OVER") return ["champion"];
+  if (milestoneGain > 0) return ["milestone"];
+  if (masteredGain > 0 || selectedMastery) return ["mastery"];
+  if (stockSpent > 0) return ["buy"];
+  if (fameGain > 0) return ["fame"];
+  if (experienceGain > 0) return ["experience"];
   if (action.type === GAME_ACTIONS.CONFIRM_DUEL_RECAP
     || (action.type === GAME_ACTIONS.LOSER_ACTION && action.action?.type === "rest")
-    || (action.type === GAME_ACTIONS.WINNER_REWARD && action.rewardType === "mastery")) events.push("confirm");
-  return events;
+    || (action.type === GAME_ACTIONS.WINNER_REWARD && action.rewardType === "mastery")
+    || (action.type === GAME_ACTIONS.MILESTONE_FALLBACK && !action.cardId)) return ["confirm"];
+  return [];
 }

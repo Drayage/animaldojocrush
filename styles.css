@@ -154,8 +154,9 @@ h1, h2, p { margin: 0; }
 .reward-grid button, .mastery-list button { padding: 13px; border-radius: 8px; background: #f2e5d0; }
 .reward-grid b, .reward-grid span { display: block; }
 .modal-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.mastery-list, .market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
-.mastery-option { position: relative; min-height: 148px; display: grid; grid-template-rows: 20px 1fr auto auto; overflow: hidden; padding: 7px; color: #24483e; border: 2px solid #3d6c5f; border-radius: 8px; background: #f5fff8; text-align: center; }
+.mastery-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 132px)); justify-content: center; gap: 8px; }
+.market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
+.mastery-option { position: relative; width: 100%; min-height: 0; aspect-ratio: .74; display: grid; grid-template-rows: 20px 1fr auto auto; overflow: hidden; padding: 7px; color: #24483e; border: 2px solid #3d6c5f; border-radius: 8px; background: #f5fff8; text-align: center; }
 .mastery-option.combo { color: #205166; border-color: #2d82a6; background: #effaff; }
 .mastery-option.exhaust { color: #6f2c25; border-color: #b84c3d; background: #fff0ec; }
 .mastery-option:hover, .mastery-option:focus-visible { outline: 3px solid #f2c344; transform: translateY(-2px); }

@@ -330,14 +330,17 @@ test("sound events cover duel victory, rewards, buying, mastery, and champion", 
   const played = structuredClone(previous);
   played.duel.plays = [{ playerId, cards: [createCardInstance("headbutt", playerId, "test")], totalPower: 9 }];
   played.duel.winnerId = playerId;
-  assert.deepEqual(getSoundEvents(previous, played, { type: GAME_ACTIONS.PLAY_CARD, playerId }), ["card", "exhaust", "duelWin"]);
+  assert.deepEqual(getSoundEvents(previous, played, { type: GAME_ACTIONS.PLAY_CARD, playerId }), ["exhaust", "duelWin"]);
 
   const rewarded = structuredClone(previous);
   rewarded.players[0].fame += 6;
   rewarded.players[0].experience += 2;
   rewarded.milestones.history.push({ score: 6 });
   rewarded.phase = PHASES.GAME_OVER;
-  assert.deepEqual(getSoundEvents(previous, rewarded, { type: GAME_ACTIONS.WINNER_REWARD, rewardType: "fame" }), ["milestone", "fame", "experience", "champion"]);
+  assert.deepEqual(getSoundEvents(previous, rewarded, { type: GAME_ACTIONS.WINNER_REWARD, rewardType: "fame" }), ["champion"]);
+
+  rewarded.phase = previous.phase;
+  assert.deepEqual(getSoundEvents(previous, rewarded, { type: GAME_ACTIONS.WINNER_REWARD, rewardType: "fame" }), ["milestone"]);
 
   const bought = structuredClone(previous);
   bought.market.bunny_kick -= 1;
