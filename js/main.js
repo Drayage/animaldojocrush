@@ -1,11 +1,11 @@
-import { APP_VERSION } from "./app-config.js?v=20260710-7";
+import { APP_VERSION } from "./app-config.js?v=20260710-8";
 import { initAudio, playSfx } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
 import { PASTEL as palette } from "./palettes.js";
 import { getAiIntent } from "./ai.js";
-import { chooseWinnerReward, createGame, loserAction, masterCard, playCard, reviveGame, setInputLocked } from "./engine.js";
-import { render } from "./ui.js?v=20260710-7";
+import { chooseWinnerReward, confirmDuelRecap, createGame, loserAction, masterCard, playCard, reviveGame, setInputLocked } from "./engine.js";
+import { render } from "./ui.js?v=20260710-8";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");
@@ -30,6 +30,7 @@ function dispatch(action) {
   else if (action.type === "WINNER_REWARD") { setState(chooseWinnerReward(state, action.rewardType)); playSfx(palette, "confirm"); }
   else if (action.type === "MASTER_CARD") { setState(masterCard(state, action.cardId)); playSfx(palette, "confirm"); }
   else if (action.type === "LOSER_ACTION") { setState(loserAction(state, action.playerId, action.action)); playSfx(palette, "tap"); }
+  else if (action.type === "CONFIRM_DUEL_RECAP") { setState(confirmDuelRecap(state, action.playerId)); playSfx(palette, "confirm"); }
 }
 
 function runAiIfNeeded() {
@@ -66,6 +67,7 @@ function handleClick(event) {
   if (action === "master-card") dispatch({ type: "MASTER_CARD", cardId: button.dataset.cardId });
   if (action === "buy") dispatch({ type: "LOSER_ACTION", playerId: button.dataset.playerId, action: { type: "buy", cardDefinitionId: button.dataset.cardDefinitionId } });
   if (action === "train-fame" || action === "rest") { const human = state.players.find((player) => player.human); dispatch({ type: "LOSER_ACTION", playerId: human.id, action: { type: action === "train-fame" ? "train-fame" : "rest" } }); }
+  if (action === "continue-duel") { const human = state.players.find((player) => player.human); dispatch({ type: "CONFIRM_DUEL_RECAP", playerId: human.id }); }
   if (action === "new-game") startGame(state.settings?.playerCount || 2);
   if (action === "toggle-rules") gameArea.querySelector("#rules-modal")?.showModal();
   if (action === "close-rules") gameArea.querySelector("#rules-modal")?.close();

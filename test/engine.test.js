@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { CARD_DEFINITIONS } from "../js/data/cards.js";
 import { PHASES } from "../js/data/constants.js";
-import { chooseWinnerReward, createCardInstance, createGame, getMasteryCandidates, loserAction, masterCard, playCard } from "../js/engine.js";
+import { getAiIntent } from "../js/ai.js";
+import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, getMasteryCandidates, loserAction, masterCard, playCard } from "../js/engine.js";
 import { render } from "../js/ui.js";
 
 function setHands(state, hands) {
@@ -131,6 +132,12 @@ test("combo chains add power and exhaust combo-revealed 9 or 20", () => {
   state = chooseWinnerReward(state, "fame");
   state = loserAction(state, state.pending.loserActionPlayerId, { type: "rest" });
   state = loserAction(state, state.pending.loserActionPlayerId, { type: "rest" });
+  assert.equal(state.phase, PHASES.WAITING_FOR_DUEL_RECAP);
+  assert.equal(state.duelNumber, 1);
+  assert.match(render(state, { screen: "game", panel: null }), /대련 1 정리/);
+  assert.match(render(state, { screen: "game", panel: null }), /경험치 보존/);
+  state = confirmDuelRecap(state, "player-1");
+  assert.equal(state.duelNumber, 2);
   assert.ok(state.players[0].consumed.some((card) => CARD_DEFINITIONS[card.definitionId].power === 9));
 });
 
@@ -178,4 +185,20 @@ test("sold out techniques are omitted from the training market", () => {
   const html = render(state, { screen: "game", panel: "market" });
   assert.doesNotMatch(html, /data-card-definition-id="combo_stance"/);
   assert.match(html, /data-card-definition-id="bunny_kick"/);
+});
+
+test("duel recap blocks AI and waits for every human acknowledgement", () => {
+  let state = createGame({ playerCount: 2, seed: 12 });
+  state.phase = PHASES.WAITING_FOR_DUEL_RECAP;
+  state.players[1].human = true;
+  state.players[1].ai = false;
+  const duelNumber = state.duelNumber;
+
+  assert.equal(getAiIntent(state), null);
+  state = confirmDuelRecap(state, state.players[0].id);
+  assert.equal(state.phase, PHASES.WAITING_FOR_DUEL_RECAP);
+  assert.equal(state.duelNumber, duelNumber);
+  state = confirmDuelRecap(state, state.players[1].id);
+  assert.equal(state.phase, PHASES.WAITING_FOR_CARD);
+  assert.equal(state.duelNumber, duelNumber + 1);
 });

@@ -178,6 +178,26 @@ function rewardDecisionHtml(state, { compact = false } = {}) {
   return `<section class="reward-decision ${compact ? "compact" : ""}" aria-label="최근 승자 선택"><span class="decision-avatar">${decision.player.portrait}</span><div><small>대련 ${decision.duelNumber} · ${esc(decision.player.name)}의 승자 선택</small>${detail}</div></section>`;
 }
 
+function loserActionText(action) {
+  if (!action || action.type === "rest") return "경험치 보존";
+  if (action.type === "buy") return `${action.cardName} 수련 · 경험치 -${action.cost}`;
+  return `명성 훈련 · 경험치 -${action.cost} · 명성 +${action.fameGain}`;
+}
+
+function duelRecapHtml(state) {
+  const winner = state.players.find((player) => player.id === state.duel.winnerId);
+  const winnerPlay = state.duel.plays.find((play) => play.playerId === winner?.id);
+  const reward = state.rewardHistory?.find((decision) => decision.duelNumber === state.duelNumber && decision.playerId === winner?.id);
+  const winnerChoice = reward?.choice === "mastery" ? `${reward.cardName} 기술 체득(덱에서 제거)` : `명성 +${reward?.amount || winnerPlay?.totalPower || 0}`;
+  const loserRows = state.duel.plays.filter((play) => play.playerId !== winner?.id).map((play) => {
+    const player = state.players.find((item) => item.id === play.playerId);
+    const experience = state.duel.experienceGains?.find((item) => item.playerId === play.playerId)?.amount || 0;
+    const action = state.duel.loserActions?.find((item) => item.playerId === play.playerId);
+    return `<li><span class="recap-player">${player.portrait} <b>${esc(player.name)}</b></span><span>경험치 +${experience}</span><strong>${esc(loserActionText(action))}</strong></li>`;
+  }).join("");
+  return `<div class="modal"><div class="modal-box wide duel-recap"><span class="result-icon">📋</span><h2>대련 ${state.duelNumber} 정리</h2><p>모든 참가자의 행동이 끝났습니다.</p><ul class="recap-list"><li class="recap-winner"><span class="recap-player">${winner?.portrait} <b>${esc(winner?.name)}</b></span><span>최종 위력 ${winnerPlay?.totalPower || 0}</span><strong>${esc(winnerChoice)}</strong></li>${loserRows}</ul><button class="primary big" data-action="continue-duel">다음 대련 시작</button><small>확인하기 전에는 다음 대련과 AI 행동이 시작되지 않습니다.</small></div></div>`;
+}
+
 function pileSection(title, cards, emptyText, note = "") {
   return `<section class="pile-section"><div class="pile-heading"><div><h3>${title}</h3>${note ? `<small>${note}</small>` : ""}</div><b>${cards.length}장</b></div><div class="pile-cards">${cards.map((card) => cardHtml(card, { compact: true, staticCard: true })).join("") || `<p class="pile-empty">${emptyText}</p>`}</div></section>`;
 }
@@ -212,6 +232,7 @@ function modalHtml(state) {
   if (state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === human.id) {
     return `<div class="modal"><div class="modal-box"><span class="result-icon">💪</span><h2>패배 보상</h2><p>경험치를 사용할 방법을 선택하세요.</p><button class="primary" data-action="toggle-market">기술 수련소 열기</button><div class="modal-actions"><button data-action="train-fame" ${human.experience >= state.rules.trainingExperienceCost ? "" : "disabled"}>경험치 5 → 명성 1</button><button data-action="rest">경험치 보존</button></div></div></div>`;
   }
+  if (state.phase === PHASES.WAITING_FOR_DUEL_RECAP) return duelRecapHtml(state);
   if (state.phase === PHASES.GAME_OVER) {
     const winner = state.players.find((player) => player.id === state.winnerId);
     return `<div class="modal"><div class="modal-box champion"><span>${winner.portrait}</span><h2>${esc(winner.name)} 우승!</h2><p>숲속 최고의 무술가가 되었습니다.</p><button class="primary big" data-action="new-game">새 대회 시작</button><button class="secondary" data-action="show-start">메인으로</button></div></div>`;

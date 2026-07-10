@@ -4,6 +4,7 @@ export const PHASES = Object.freeze({
   WAITING_FOR_WINNER_REWARD: "WAITING_FOR_WINNER_REWARD",
   WAITING_FOR_MASTERY_CARD: "WAITING_FOR_MASTERY_CARD",
   WAITING_FOR_LOSER_ACTION: "WAITING_FOR_LOSER_ACTION",
+  WAITING_FOR_DUEL_RECAP: "WAITING_FOR_DUEL_RECAP",
   REFILLING_HANDS: "REFILLING_HANDS",
   GAME_OVER: "GAME_OVER"
 });
@@ -17,7 +18,7 @@ export const RULES = Object.freeze({
   minimumReusableCardsAfterMastery: 3,
   allowPlayedCardMastery: true,
   allowComboCardMastery: true,
-  aiDelayMs: 520,
+  aiDelayMs: 850,
   animationMs: 260
 });
 

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PHASES } from "../js/data/constants.js";
-import { chooseWinnerReward, createCardInstance, createGame, finishDuel, loserAction, playCard, reviveGame } from "../js/engine.js";
+import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, finishDuel, loserAction, playCard, reviveGame } from "../js/engine.js";
 
 function setOrder(state, firstId) {
   return {
@@ -82,5 +82,7 @@ test("연계 자세로 공개된 소모 기술은 대련 종료 후 소모 영�
     const loser = state.pending.loserActionPlayerId;
     state = loserAction(state, loser, { type: "rest" });
   }
+  assert.equal(state.phase, PHASES.WAITING_FOR_DUEL_RECAP);
+  state = confirmDuelRecap(state, p1.id);
   assert.ok(state.players[0].consumed.some((card) => card.definitionId === "headbutt"));
 });

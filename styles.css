@@ -118,7 +118,7 @@ h1, h2, p { margin: 0; }
 .panel-heading h2 { font-size: 1rem; }
 .turn-message { padding: 5px 8px; border-radius: 999px; color: #5d4938; background: #eee3d1; font-size: .72rem; font-weight: 850; }
 .ready .turn-message { color: #fff; background: #267160; }
-.hand { display: grid; grid-template-columns: repeat(3, minmax(88px, 108px)); justify-content: center; gap: 7px; margin-top: 8px; overflow-x: auto; overscroll-behavior-x: contain; }
+.hand { display: grid; grid-template-columns: repeat(3, minmax(88px, 108px)); justify-content: center; gap: 7px; margin-top: 2px; padding: 9px 4px 4px; overflow-x: auto; overscroll-behavior-x: contain; }
 .empty { grid-column: 1 / -1; padding: 20px; color: #735c47; text-align: center; }
 
 /* Market and overlays */
@@ -156,6 +156,13 @@ h1, h2, p { margin: 0; }
 .reward-decision small { grid-column: 1 / -1; color: #72572d; font-size: .68rem; }
 .reward-decision strong { overflow-wrap: anywhere; font-size: .9rem; }
 .reward-decision span:last-child { color: #6c5434; font-size: .72rem; }
+.duel-recap { text-align: center; }
+.recap-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; text-align: left; }
+.recap-list li { display: grid; grid-template-columns: minmax(130px, 1fr) auto minmax(150px, 1fr); gap: 8px; align-items: center; padding: 10px; border: 1px solid #d8c4a5; border-radius: 7px; background: #fffdf7; }
+.recap-list li.recap-winner { border-color: #c3912f; background: #fff3bf; }
+.recap-player { display: flex; align-items: center; gap: 5px; }
+.recap-list li > span:nth-child(2) { color: #705a47; font-size: .78rem; }
+.recap-list li > strong { font-size: .82rem; text-align: right; }
 .owned-card-piles { display: grid; gap: 10px; margin-top: 10px; }
 .pile-section, .reward-candidates { padding: 10px; border: 1px solid #cdb899; border-radius: 8px; background: #fffdf7; text-align: left; }
 .pile-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -236,6 +243,8 @@ dialog::backdrop { background: #0008; }
   .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #action-bar button { padding: 4px 2px; font-size: .76rem; }
   .reward-grid { grid-template-columns: 1fr; }
+  .recap-list li { grid-template-columns: 1fr auto; }
+  .recap-list li > strong { grid-column: 1 / -1; text-align: left; }
   .hero-card h1 { font-size: 3rem; }
 }
 
