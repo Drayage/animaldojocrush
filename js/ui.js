@@ -218,7 +218,7 @@ function overlayPanel(state, ui) {
 }
 
 function modalHtml(state) {
-  if (state.inputLocked) return `<div class="modal"><div class="modal-box small"><div class="loader">🥋</div><h2>상대가 생각 중입니다</h2>${rewardDecisionHtml(state, { compact: true })}</div></div>`;
+  if (state.inputLocked) return `<div class="thinking-toast" role="status" aria-live="polite"><span class="thinking-icon">🥋</span><strong>상대 생각 중</strong><span class="thinking-dots" aria-hidden="true">•••</span></div>`;
   const human = state.players.find((player) => player.human);
   if (state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id) {
     const play = state.duel.plays.find((item) => item.playerId === human.id);

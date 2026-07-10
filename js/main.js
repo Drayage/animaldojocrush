@@ -1,11 +1,11 @@
-import { APP_VERSION } from "./app-config.js?v=20260710-8";
+import { APP_VERSION } from "./app-config.js?v=20260710-9";
 import { initAudio, playSfx } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
 import { PASTEL as palette } from "./palettes.js";
 import { getAiIntent } from "./ai.js";
 import { chooseWinnerReward, confirmDuelRecap, createGame, loserAction, masterCard, playCard, reviveGame, setInputLocked } from "./engine.js";
-import { render } from "./ui.js?v=20260710-8";
+import { render } from "./ui.js?v=20260710-9";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");

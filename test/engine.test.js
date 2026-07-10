@@ -202,3 +202,12 @@ test("duel recap blocks AI and waits for every human acknowledgement", () => {
   assert.equal(state.phase, PHASES.WAITING_FOR_CARD);
   assert.equal(state.duelNumber, duelNumber + 1);
 });
+
+test("AI thinking state uses a compact toast without a screen-blocking modal", () => {
+  const state = createGame({ playerCount: 2, seed: 13 });
+  state.inputLocked = true;
+  const html = render(state, { screen: "game", panel: null });
+  assert.match(html, /class="thinking-toast"/);
+  assert.doesNotMatch(html, /상대가 생각 중입니다/);
+  assert.doesNotMatch(html, /class="modal"><div class="modal-box small"/);
+});
