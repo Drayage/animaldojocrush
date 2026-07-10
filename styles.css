@@ -38,6 +38,17 @@ h1, h2, p { margin: 0; }
 .player-count { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .player-count button { min-height: 58px; border-radius: 8px; background: #eee3d1; font-weight: 900; }
 .player-count button.selected { background: #f7cf66; outline: 3px solid #8c672c; }
+.new-game-settings { display: grid; gap: 10px; padding: 12px 0; border-top: 1px solid #d9c5a7; border-bottom: 1px solid #d9c5a7; }
+.new-game-settings h3 { margin: 0; font-size: 1rem; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.setting-row > span { flex: 0 0 auto; color: #5f4a39; font-size: .82rem; font-weight: 850; }
+.target-options, .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.target-options input { width: 68px; min-height: 38px; padding: 5px 7px; border: 1px solid #bca17c; border-radius: 7px; background: #fffdf7; color: #34271e; font: inherit; font-weight: 900; text-align: center; }
+.target-options button, .setting-toggle, .toggle-group button { min-height: 38px; padding: 7px 10px; border: 1px solid #c7b293; border-radius: 7px; color: #44362b; background: #f1e6d5; font-size: .78rem; font-weight: 900; }
+.target-options button.selected, .setting-toggle[aria-pressed="true"], .toggle-group button[aria-pressed="true"] { color: #fff; border-color: var(--green); background: var(--green); }
+.game-settings-panel { display: grid; gap: 12px; margin-top: 12px; }
+.game-settings-panel .setting-row { padding: 10px; border-radius: 7px; background: #f4e7d3; }
+.game-settings-panel > small { color: #75604e; text-align: center; }
 
 /* Game frame */
 .game-shell { min-height: 100dvh; padding-bottom: 72px; background: #eadcc6; }
@@ -163,6 +174,11 @@ h1, h2, p { margin: 0; }
 .recap-player { display: flex; align-items: center; gap: 5px; }
 .recap-list li > span:nth-child(2) { color: #705a47; font-size: .78rem; }
 .recap-list li > strong { font-size: .82rem; text-align: right; }
+.recap-milestones { padding: 10px; border: 1px solid #d4ad48; border-radius: 7px; background: #fff8d8; text-align: left; }
+.recap-milestones h3 { margin: 0 0 6px; font-size: .88rem; }
+.recap-milestones ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.recap-milestones li { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; }
+.milestone-modal > p { color: #66503e; }
 .owned-card-piles { display: grid; gap: 10px; margin-top: 10px; }
 .pile-section, .reward-candidates { padding: 10px; border: 1px solid #cdb899; border-radius: 8px; background: #fffdf7; text-align: left; }
 .pile-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -249,6 +265,11 @@ dialog::backdrop { background: #0008; }
   .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #action-bar button { padding: 4px 2px; font-size: .76rem; }
   .reward-grid { grid-template-columns: 1fr; }
+  .setting-row { align-items: stretch; flex-direction: column; }
+  .target-options, .toggle-group { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .target-options { grid-template-columns: repeat(5, 1fr); }
+  .target-options input { width: 100%; min-width: 0; }
+  .target-options button, .setting-toggle, .toggle-group button { min-width: 0; padding-inline: 4px; }
   .recap-list li { grid-template-columns: 1fr auto; }
   .recap-list li > strong { grid-column: 1 / -1; text-align: left; }
   .hero-card h1 { font-size: 3rem; }

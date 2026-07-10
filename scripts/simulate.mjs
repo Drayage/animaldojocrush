@@ -1,6 +1,6 @@
 import { chooseAiCard, chooseAiLoserAction, chooseAiWinnerReward } from "../js/ai.js";
 import { PHASES } from "../js/data/constants.js";
-import { chooseWinnerReward, confirmDuelRecap, createGame, getMasteryCandidates, loserAction, masterCard, playCard } from "../js/engine.js";
+import { chooseWinnerReward, confirmDuelRecap, createGame, getMasteryCandidates, getMilestoneMasteryCandidates, loserAction, masterCard, playCard, resolveMilestoneFallback, resolveMilestoneMastery } from "../js/engine.js";
 
 const GAMES = Number(process.argv[2] || 200);
 const MAX_STEPS = 2000;
@@ -26,6 +26,16 @@ function stepGame(state) {
   }
   if (state.phase === PHASES.WAITING_FOR_DUEL_RECAP) {
     return confirmDuelRecap(state, state.players[0].id);
+  }
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_MASTERY) {
+    const playerId = state.pending.milestoneActivePlayerId;
+    const card = getMilestoneMasteryCandidates(state, playerId).toSorted((a, b) => a.power - b.power)[0];
+    return resolveMilestoneMastery(state, playerId, card.id);
+  }
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_FALLBACK) {
+    const playerId = state.pending.milestoneActivePlayerId;
+    const card = getMilestoneMasteryCandidates(state, playerId).toSorted((a, b) => a.power - b.power)[0];
+    return resolveMilestoneFallback(state, playerId, card?.id || null);
   }
   return state;
 }

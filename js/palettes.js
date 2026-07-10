@@ -95,4 +95,20 @@ export const PASTEL = {
   },
 };
 
-export const ALL_PALETTES = { WOODY, CHIPTUNE, PASTEL };
+export const ANIMAL_DOJO = {
+  name: "동물도장",
+  sfx: PASTEL.sfx,
+  bgm: {
+    main: {
+      tempo: 84,
+      loopBeats: 16,
+      inst: { wave: "triangle", gain: 0.16, attack: 0.035, lp: 1800 },
+      notes: [
+        [0, 392, 1.5], [2, 523, 1], [4, 440, 1.5], [6, 330, 1],
+        [8, 349, 1.5], [10, 440, 1], [12, 494, 1], [14, 392, 2],
+      ],
+    },
+  },
+};
+
+export const ALL_PALETTES = { WOODY, CHIPTUNE, PASTEL, ANIMAL_DOJO };

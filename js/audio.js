@@ -17,8 +17,8 @@ function ensureCtx() {
     sfxBus.connect(master);
     master.connect(ctx.destination);
     const vol = loadVolumes();
-    bgmBus.gain.value = vol.bgm;
-    sfxBus.gain.value = vol.sfx;
+    bgmBus.gain.value = vol.bgmEnabled ? vol.bgm : 0;
+    sfxBus.gain.value = vol.sfxEnabled ? vol.sfx : 0;
   }
   if (ctx.state === "suspended") ctx.resume();
   return ctx;
@@ -33,25 +33,35 @@ export function initAudio() {
 
 function loadVolumes() {
   try {
-    return { bgm: 0.5, sfx: 0.8, ...JSON.parse(localStorage.getItem(VOLKEY) || "{}") };
+    return { bgm: 0.38, sfx: 0.75, bgmEnabled: true, sfxEnabled: true, ...JSON.parse(localStorage.getItem(VOLKEY) || "{}") };
   } catch (e) {
-    return { bgm: 0.5, sfx: 0.8 };
+    return { bgm: 0.38, sfx: 0.75, bgmEnabled: true, sfxEnabled: true };
   }
 }
 export function setVolume(kind, v) {
   ensureCtx();
-  (kind === "bgm" ? bgmBus : sfxBus).gain.value = v;
   const vol = loadVolumes();
   vol[kind] = v;
+  (kind === "bgm" ? bgmBus : sfxBus).gain.value = vol[`${kind}Enabled`] ? v : 0;
   localStorage.setItem(VOLKEY, JSON.stringify(vol));
 }
 export const getVolumes = loadVolumes;
+export const getAudioSettings = loadVolumes;
+export function setAudioEnabled(kind, enabled) {
+  const vol = loadVolumes();
+  vol[`${kind}Enabled`] = Boolean(enabled);
+  localStorage.setItem(VOLKEY, JSON.stringify(vol));
+  ensureCtx();
+  (kind === "bgm" ? bgmBus : sfxBus).gain.value = enabled ? vol[kind] : 0;
+  return vol;
+}
 
 // ── SFX: 팔레트의 선언적 레이어를 해석해 재생 ──────────────────────
 // layer 종류:
 //  {t:"tone", wave, freq, freqEnd?, dur, gain?, attack?, lp?}   — 오실레이터
 //  {t:"noise", dur, gain?, lp?, hp?}                            — 노이즈(타격·바람)
 export function playSfx(palette, name) {
+  if (!loadVolumes().sfxEnabled) return;
   const layers = palette.sfx[name];
   if (!layers) return;
   const c = ensureCtx();
@@ -110,6 +120,7 @@ function noiseBuffer(c) {
 const bgm = { timer: 0, current: null, gain: null, beat: 0, nextTime: 0 };
 
 export function startBgm(palette, name = "main", fade = 0.8) {
+  if (!loadVolumes().bgmEnabled) return;
   const track = palette.bgm?.[name];
   if (!track) return;
   const c = ensureCtx();

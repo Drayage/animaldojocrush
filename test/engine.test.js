@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { CARD_DEFINITIONS } from "../js/data/cards.js";
 import { PHASES } from "../js/data/constants.js";
 import { getAiIntent } from "../js/ai.js";
-import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, getMasteryCandidates, loserAction, masterCard, playCard } from "../js/engine.js";
+import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, getMasteryCandidates, getMilestoneMasteryCandidates, loserAction, masterCard, playCard, resolveMilestoneFallback, resolveMilestoneMastery, reviveGame } from "../js/engine.js";
+import { applyGameAction, GAME_ACTIONS } from "../js/game-actions.js";
 import { render } from "../js/ui.js";
 
 function setHands(state, hands) {
@@ -210,4 +211,92 @@ test("AI thinking state uses a compact toast without a screen-blocking modal", (
   assert.match(html, /class="thinking-toast"/);
   assert.doesNotMatch(html, /상대가 생각 중입니다/);
   assert.doesNotMatch(html, /class="modal"><div class="modal-box small"/);
+});
+
+test("the first player to fame 6 receives the milestone experience once", () => {
+  let state = createGame({ playerCount: 3, seed: 14 });
+  state = setHands(state, { "player-1": ["start_5"], "player-2": ["start_2"], "player-3": ["start_3"] });
+  state.players[0].fame = 1;
+  state = setOrder(state, "player-1");
+  state = playFirstCard(state, "player-1");
+  state = playFirstCard(state, "player-2");
+  state = playFirstCard(state, "player-3");
+  state = chooseWinnerReward(state, "fame");
+
+  assert.equal(state.players[0].experience, 2);
+  assert.equal(state.milestones.claimed[6], "player-1");
+  assert.equal(state.milestones.history[0].status, "resolved");
+  assert.equal(state.phase, PHASES.WAITING_FOR_LOSER_ACTION);
+
+  const replay = structuredClone(state);
+  replay.phase = PHASES.WAITING_FOR_WINNER_REWARD;
+  replay.duel.winnerId = "player-2";
+  replay.duel.plays = [{ playerId: "player-2", totalPower: 5, cards: [] }];
+  replay.players[1].fame = 1;
+  const afterClaimed = chooseWinnerReward(replay, "fame");
+  assert.equal(afterClaimed.players[1].experience, replay.players[1].experience);
+  assert.equal(afterClaimed.milestones.history.length, 1);
+});
+
+test("fame 12 pauses for mastery and resumes loser actions after removal", () => {
+  let state = createGame({ playerCount: 3, seed: 15 });
+  state = setHands(state, { "player-1": ["start_5"], "player-2": ["start_2"], "player-3": ["start_3"] });
+  state.players[0].fame = 7;
+  state.players[0].deck = ["start_1", "start_2", "start_3"].map((id) => createCardInstance(id, "player-1", "test"));
+  state = setOrder(state, "player-1");
+  state = playFirstCard(state, "player-1");
+  state = playFirstCard(state, "player-2");
+  state = playFirstCard(state, "player-3");
+  state = chooseWinnerReward(state, "fame");
+
+  assert.equal(state.phase, PHASES.WAITING_FOR_MILESTONE_MASTERY);
+  const candidate = getMilestoneMasteryCandidates(state, "player-1")[0];
+  assert.ok(candidate);
+  state = resolveMilestoneMastery(state, "player-1", candidate.id);
+  assert.equal(state.players[0].mastered.some((card) => card.id === candidate.id), true);
+  assert.equal(state.phase, PHASES.WAITING_FOR_LOSER_ACTION);
+});
+
+test("an unusable mastery milestone gives every other player an optional removal", () => {
+  let state = createGame({ playerCount: 3, seed: 16 });
+  state = setHands(state, { "player-1": ["start_5"], "player-2": ["start_2"], "player-3": ["start_3"] });
+  state.players[0].fame = 7;
+  state.players[0].deck = ["start_1", "start_2"].map((id) => createCardInstance(id, "player-1", "test"));
+  for (const player of state.players.slice(1)) {
+    player.deck = ["start_1", "start_2", "start_4"].map((id) => createCardInstance(id, player.id, "test"));
+  }
+  state = setOrder(state, "player-1");
+  state = playFirstCard(state, "player-1");
+  state = playFirstCard(state, "player-2");
+  state = playFirstCard(state, "player-3");
+  state = chooseWinnerReward(state, "fame");
+
+  assert.equal(state.phase, PHASES.WAITING_FOR_MILESTONE_FALLBACK);
+  assert.equal(state.pending.milestoneActivePlayerId, "player-2");
+  state = resolveMilestoneFallback(state, "player-2", null);
+  assert.equal(state.pending.milestoneActivePlayerId, "player-3");
+  const candidate = getMilestoneMasteryCandidates(state, "player-3")[0];
+  state = resolveMilestoneFallback(state, "player-3", candidate.id);
+  assert.equal(state.players[2].mastered.some((card) => card.id === candidate.id), true);
+  assert.equal(state.phase, PHASES.WAITING_FOR_LOSER_ACTION);
+  assert.deepEqual(state.milestones.history[0].fallbackChoices.map((item) => item.choice), ["skip", "mastery"]);
+});
+
+test("milestone mode and target fame are configurable and survive restore", () => {
+  let state = createGame({ playerCount: 2, seed: 17, targetFame: 42, milestoneMode: false });
+  assert.equal(state.rules.targetFame, 42);
+  assert.equal(state.rules.milestoneMode, false);
+  state.phase = PHASES.WAITING_FOR_MILESTONE_FALLBACK;
+  state.pending.milestoneActivePlayerId = "player-1";
+  const restored = reviveGame(JSON.parse(JSON.stringify(state)));
+  assert.equal(restored.phase, PHASES.WAITING_FOR_MILESTONE_FALLBACK);
+  assert.equal(restored.pending.milestoneActivePlayerId, "player-1");
+});
+
+test("serializable game actions use the same reducer intended for online play", () => {
+  let state = createGame({ playerCount: 2, seed: 18 });
+  const player = state.players.find((item) => item.id === state.actingPlayerId);
+  const action = JSON.parse(JSON.stringify({ type: GAME_ACTIONS.PLAY_CARD, playerId: player.id, cardId: player.hand[0].id }));
+  state = applyGameAction(state, action);
+  assert.equal(state.duel.plays.length, 1);
 });

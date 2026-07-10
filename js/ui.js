@@ -1,6 +1,6 @@
 import { CARD_DEFINITIONS, MARKET_CARD_IDS, cardDef } from "./data/cards.js";
 import { PHASES, ZONES } from "./data/constants.js";
-import { getMasteryCandidates } from "./engine.js";
+import { getMasteryCandidates, getMilestoneMasteryCandidates } from "./engine.js";
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
   "&": "&amp;",
@@ -46,11 +46,21 @@ function cardHtml(card, { disabled = false, action = "", compact = false, static
 }
 
 function rulesDialog() {
-  return `<dialog id="rules-modal"><h2>게임 규칙</h2><p><b>1.</b> 선봉부터 기술 카드 1장씩 공개합니다.</p><p><b>2.</b> 가장 높은 위력이 승리하며, 동점이면 나중에 낸 참가자가 이깁니다.</p><p><b>3.</b> 승자는 명성을 얻거나 기술 체득(덱에서 제거)을 선택합니다.</p><p><b>4.</b> 패자는 경험치를 얻어 새 기술을 수련합니다.</p><p><b>5.</b> 먼저 명성 50에 도달하면 우승합니다.</p><button data-action="close-rules">확인</button></dialog>`;
+  return `<dialog id="rules-modal"><h2>게임 규칙</h2><p><b>1.</b> 선봉부터 기술 카드 1장씩 공개합니다.</p><p><b>2.</b> 가장 높은 위력이 승리하며, 동점이면 나중에 낸 참가자가 이깁니다.</p><p><b>3.</b> 승자는 명성을 얻거나 기술 체득(덱에서 제거)을 선택합니다.</p><p><b>4.</b> 패자는 경험치를 얻어 새 기술을 수련합니다.</p><p><b>5.</b> 선착 보상 모드에서는 명성 6점 단위 보상을 가장 먼저 도달한 참가자만 얻습니다.</p><p><b>6.</b> 설정한 목표 명성에 먼저 도달하면 우승합니다.</p><button data-action="close-rules">확인</button></dialog>`;
+}
+
+function audioToggles(ui) {
+  const audio = ui.audio || { bgmEnabled: true, sfxEnabled: true };
+  return `<div class="setting-row"><span>소리</span><div class="toggle-group"><button data-action="toggle-bgm" aria-pressed="${audio.bgmEnabled}">🎵 배경음 ${audio.bgmEnabled ? "켜짐" : "꺼짐"}</button><button data-action="toggle-sfx" aria-pressed="${audio.sfxEnabled}">🥋 효과음 ${audio.sfxEnabled ? "켜짐" : "꺼짐"}</button></div></div>`;
+}
+
+function newGameSettings(ui) {
+  const target = ui.selectedTargetFame || 50;
+  return `<section class="new-game-settings"><h3>게임 설정</h3><div class="setting-row"><label for="target-fame">목표 명성</label><div class="target-options">${[30, 42, 50, 60].map((score) => `<button class="${target === score ? "selected" : ""}" data-action="select-target" data-score="${score}">${score}</button>`).join("")}<input id="target-fame" data-setting="target-fame" type="number" inputmode="numeric" min="12" max="100" value="${target}" aria-label="목표 명성 직접 입력" /></div></div><div class="setting-row"><span>6점 선착 보상</span><button class="setting-toggle" data-action="toggle-milestone-mode" aria-pressed="${ui.milestoneMode !== false}">${ui.milestoneMode !== false ? "사용" : "미사용"}</button></div>${audioToggles(ui)}</section>`;
 }
 
 function startScreen(state, ui) {
-  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 나머지 참가자는 일반 AI가 맡습니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div><button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
+  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 나머지 참가자는 일반 AI가 맡습니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div>${newGameSettings(ui)}<button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
 }
 
 function seatAssignments(state) {
@@ -184,6 +194,14 @@ function loserActionText(action) {
   return `명성 훈련 · 경험치 -${action.cost} · 명성 +${action.fameGain}`;
 }
 
+function milestoneRewardText(record) {
+  if (record.rewardType === "experience") return `경험치 +${record.experienceGained ?? record.amount}`;
+  if (record.cardName) return `${record.cardName} 체득`;
+  if (record.status === "fallback") return "체득 기회 양도 중";
+  const removed = record.fallbackChoices?.filter((choice) => choice.choice === "mastery").length || 0;
+  return `다른 참가자 체득 ${removed}명`;
+}
+
 function duelRecapHtml(state) {
   const winner = state.players.find((player) => player.id === state.duel.winnerId);
   const winnerPlay = state.duel.plays.find((play) => play.playerId === winner?.id);
@@ -195,7 +213,8 @@ function duelRecapHtml(state) {
     const action = state.duel.loserActions?.find((item) => item.playerId === play.playerId);
     return `<li><span class="recap-player">${player.portrait} <b>${esc(player.name)}</b></span><span>경험치 +${experience}</span><strong>${esc(loserActionText(action))}</strong></li>`;
   }).join("");
-  return `<div class="modal"><div class="modal-box wide duel-recap"><span class="result-icon">📋</span><h2>대련 ${state.duelNumber} 정리</h2><p>모든 참가자의 행동이 끝났습니다.</p><ul class="recap-list"><li class="recap-winner"><span class="recap-player">${winner?.portrait} <b>${esc(winner?.name)}</b></span><span>최종 위력 ${winnerPlay?.totalPower || 0}</span><strong>${esc(winnerChoice)}</strong></li>${loserRows}</ul><button class="primary big" data-action="continue-duel">다음 대련 시작</button><small>확인하기 전에는 다음 대련과 AI 행동이 시작되지 않습니다.</small></div></div>`;
+  const milestones = state.milestones?.history?.filter((record) => record.duelNumber === state.duelNumber).map((record) => { const player = state.players.find((item) => item.id === record.playerId); return `<li><span>${player?.portrait} 명성 ${record.score} 선착</span><strong>${esc(milestoneRewardText(record))}</strong></li>`; }).join("") || "";
+  return `<div class="modal"><div class="modal-box wide duel-recap"><span class="result-icon">📋</span><h2>대련 ${state.duelNumber} 정리</h2><p>모든 참가자의 행동이 끝났습니다.</p><ul class="recap-list"><li class="recap-winner"><span class="recap-player">${winner?.portrait} <b>${esc(winner?.name)}</b></span><span>최종 위력 ${winnerPlay?.totalPower || 0}</span><strong>${esc(winnerChoice)}</strong></li>${loserRows}</ul>${milestones ? `<section class="recap-milestones"><h3>선착 보상</h3><ul>${milestones}</ul></section>` : ""}<button class="primary big" data-action="continue-duel">다음 대련 시작</button><small>확인하기 전에는 다음 대련과 AI 행동이 시작되지 않습니다.</small></div></div>`;
 }
 
 function pileSection(title, cards, emptyText, note = "") {
@@ -207,19 +226,40 @@ function ownedCardsContent(state) {
   return `<div class="owned-card-piles">${pileSection("덱에 남은 카드", human.deck, "덱이 비었습니다.", "순서와 관계없이 구성만 표시")}${pileSection("버린 카드 · 휴식 더미", human.rest, "버린 카드가 없습니다.", "승리하면 이곳의 일반 카드를 없앨 수 있음")}${human.played.length ? pileSection("이번 대련에 낸 카드", human.played, "", "승리하면 일반 카드를 없앨 수 있음") : ""}</div>`;
 }
 
+function settingsContent(state, ui) {
+  return `<div class="game-settings-panel"><div class="setting-row"><span>목표 명성</span><strong>${state.rules.targetFame}</strong></div><div class="setting-row"><span>6점 선착 보상</span><strong>${state.rules.milestoneMode ? "사용 중" : "미사용"}</strong></div>${audioToggles(ui)}<button class="secondary big" data-action="show-start">메인 화면</button><small>목표 명성과 선착 보상은 새 대회를 시작할 때 설정합니다.</small></div>`;
+}
+
 function overlayPanel(state, ui) {
   if (!ui.panel) return "";
   const content = ui.panel === "market"
     ? `<h2>🥋 기술 수련소</h2>${marketContent(state)}`
     : ui.panel === "cards"
       ? `<h2>🂠 내 카드</h2>${ownedCardsContent(state)}`
-      : `<h2>📜 도장 기록</h2><div class="log-list">${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</div>`;
+      : ui.panel === "settings"
+        ? `<h2>⚙️ 게임 설정</h2>${settingsContent(state, ui)}`
+        : `<h2>📜 도장 기록</h2><div class="log-list">${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</div>`;
   return `<div class="sheet-backdrop" data-action="close-panel"><aside class="bottom-sheet"><div class="sheet-handle"></div><button class="sheet-close" data-action="close-panel" aria-label="닫기">×</button>${content}</aside></div>`;
+}
+
+function milestoneCardsHtml(state, playerId, action) {
+  const candidates = getMilestoneMasteryCandidates(state, playerId);
+  return candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.ability === "combo" ? "combo" : ""}" data-action="${action}" data-card-id="${card.id}" data-player-id="${playerId}">${effectMarker(definition)}<span class="market-power">${card.power}</span><span class="market-art">${CARD_ART[definition.id] || "🥋"}</span><strong>${esc(card.name)}</strong><small>${card.zone === ZONES.HAND ? "손패" : card.zone === ZONES.DECK ? "덱" : card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("");
 }
 
 function modalHtml(state) {
   if (state.inputLocked) return `<div class="thinking-toast" role="status" aria-live="polite"><span class="thinking-icon">🥋</span><strong>상대 생각 중</strong><span class="thinking-dots" aria-hidden="true">•••</span></div>`;
   const human = state.players.find((player) => player.human);
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_MASTERY && state.pending.milestoneActivePlayerId === human.id) {
+    const reward = state.pending.milestoneCurrent;
+    return `<div class="modal"><div class="modal-box wide milestone-modal"><span class="result-icon">🎖️</span><h2>명성 ${reward.score} 선착 보상</h2><p>기술 하나를 체득(덱에서 제거)하세요.</p><div class="mastery-list">${milestoneCardsHtml(state, human.id, "milestone-master")}</div></div></div>`;
+  }
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_FALLBACK && state.pending.milestoneActivePlayerId === human.id) {
+    const reward = state.pending.milestoneCurrent;
+    const claimant = state.players.find((player) => player.id === reward.playerId);
+    const cards = milestoneCardsHtml(state, human.id, "milestone-fallback-card");
+    return `<div class="modal"><div class="modal-box wide milestone-modal"><span class="result-icon">🎁</span><h2>체득 기회가 넘어왔습니다</h2><p>${claimant.portrait} ${esc(claimant.name)}이 명성 ${reward.score} 보상을 사용할 수 없어 다른 참가자에게 기회가 주어졌습니다.</p>${cards ? `<div class="mastery-list">${cards}</div>` : `<p>제거할 수 있는 일반 카드가 없습니다.</p>`}<button class="secondary big" data-action="milestone-fallback-skip" data-player-id="${human.id}">제거하지 않고 넘기기</button></div></div>`;
+  }
   if (state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id) {
     const play = state.duel.plays.find((item) => item.playerId === human.id);
     const candidates = getMasteryCandidates(state, human.id);
@@ -247,5 +287,5 @@ export function render(state, ui) {
   };
   if (view.screen === "start") return startScreen(state, view);
   const vanguard = state.players.find((player) => player.id === state.vanguardPlayerId);
-  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header>${rewardDecisionHtml(state)}<section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
+  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span>목표 <b>${state.rules.targetFame}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header>${rewardDecisionHtml(state)}<section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
 }
