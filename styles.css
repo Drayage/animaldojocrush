@@ -1,16 +1,22 @@
 :root {
   color-scheme: light;
   font-family: "Segoe UI", system-ui, sans-serif;
-  background: #f5ead8;
-  color: #2d241b;
+  background: #efe2c8;
+  color: #241b14;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: #efe2c8;
 }
 
 button {
@@ -24,14 +30,18 @@ button:disabled {
 }
 
 .app {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 14px;
-  padding: 14px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-areas:
+    "top top"
+    "players players"
+    "main log";
+  gap: 12px;
+  padding: 12px;
   background:
-    linear-gradient(90deg, rgba(122, 87, 46, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
-    linear-gradient(#f8efd9, #e8cfa9);
+    linear-gradient(90deg, rgba(126, 85, 46, 0.06) 1px, transparent 1px) 0 0 / 36px 36px,
+    linear-gradient(#fff2d3, #e6c08d);
 }
 
 .topbar,
@@ -41,19 +51,19 @@ button:disabled {
 .market,
 .log,
 .modal-box {
-  border: 2px solid #7d5731;
-  background: rgba(255, 252, 242, 0.94);
-  box-shadow: 0 6px 0 rgba(91, 57, 24, 0.18);
+  border: 2px solid #6d4525;
+  border-radius: 8px;
+  background: rgba(255, 252, 242, 0.96);
+  box-shadow: 0 4px 0 rgba(74, 45, 20, 0.2);
 }
 
 .topbar {
-  grid-column: 1 / -1;
+  grid-area: top;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  padding: 14px 16px;
-  border-radius: 8px;
+  padding: 12px 14px;
 }
 
 h1,
@@ -63,81 +73,111 @@ p {
 }
 
 h1 {
-  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-size: 1.65rem;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 1.08rem;
 }
 
 .topbar p {
   margin-top: 4px;
-  color: #654d35;
+  color: #634832;
+  font-size: 0.95rem;
 }
 
 .top-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .top-actions span,
 .badge {
-  padding: 6px 9px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 8px;
   border-radius: 999px;
   background: #ffe08a;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
+}
+
+.status-pill {
+  background: #2f7d6e !important;
+  color: #fff;
 }
 
 .top-actions button,
 .modal-actions button,
-dialog button {
-  padding: 9px 12px;
+dialog button,
+.modal-box > button {
+  min-height: 38px;
+  padding: 8px 12px;
   border-radius: 8px;
   color: #fff;
   background: #2f7d6e;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .players {
-  grid-column: 1 / -1;
+  grid-area: players;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  border-radius: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  padding: 8px;
 }
 
 .player {
   min-width: 0;
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
-  padding: 10px;
-  border: 2px solid color-mix(in srgb, var(--accent), #352417 30%);
+  padding: 9px;
+  border: 2px solid color-mix(in srgb, var(--accent), #352417 35%);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent), white 82%);
+  background: color-mix(in srgb, var(--accent), white 84%);
 }
 
-.player.acting {
+.player.me {
+  border-width: 3px;
+  background: #fff7df;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--accent), white 55%);
+}
+
+.player.acting,
+.player.choosing {
   outline: 4px solid #ffd34e;
 }
 
 .avatar {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #fff;
-  font-size: 2rem;
+  font-size: 1.8rem;
 }
 
 .player-title {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
+}
+
+.player-title strong {
+  overflow-wrap: anywhere;
+}
+
+.me-badge {
+  background: #2f7d6e;
+  color: #fff;
 }
 
 .badge.neutral {
@@ -147,40 +187,59 @@ dialog button {
 .meters {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 5px;
   margin-top: 6px;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 .meters span,
-.mini-hand,
-.played-mini {
+.player-side span,
+.player-side b {
   padding: 4px 6px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.player-side {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.main-column {
+  grid-area: main;
+  display: grid;
+  gap: 12px;
+  align-content: start;
 }
 
 .arena,
 .hand-panel,
 .market,
 .log {
-  border-radius: 8px;
   padding: 12px;
 }
 
-.arena-head,
 .section-title {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   margin-bottom: 10px;
+}
+
+.section-title span {
+  color: #634832;
+  font-weight: 800;
 }
 
 .plays,
 .hand,
 .market-grid,
-.mastery-list {
+.mastery-list,
+.modal-market-grid {
   display: grid;
   gap: 10px;
 }
@@ -201,6 +260,12 @@ dialog button {
   background: #fff1ad;
 }
 
+.play-owner,
+.final-power,
+.victory {
+  font-weight: 900;
+}
+
 .combo-line {
   display: flex;
   gap: 8px;
@@ -211,20 +276,42 @@ dialog button {
 .card,
 .market-card,
 .mastery-list button {
-  min-height: 128px;
+  min-height: 146px;
   display: grid;
-  align-content: space-between;
-  gap: 6px;
-  padding: 10px;
-  border: 2px solid #406057;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 7px;
+  padding: 12px;
+  border: 2px solid #386257;
   border-radius: 8px;
   background: #f7fff8;
-  color: #23342f;
+  color: #20342f;
   text-align: left;
 }
 
 .card {
-  min-width: 128px;
+  min-width: 150px;
+}
+
+.card.compact {
+  min-width: 118px;
+  min-height: 112px;
+  padding: 9px;
+}
+
+.card strong,
+.market-card strong {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.card-topline {
+  width: fit-content;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: #dff3ee;
+  color: #24544a;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
 
 .card:hover:not(:disabled),
@@ -236,19 +323,12 @@ dialog button {
 .card.disabled,
 .card:disabled,
 .market-card:disabled {
-  opacity: 0.58;
+  opacity: 0.5;
 }
 
-.card.back {
-  display: grid;
-  place-items: center;
-  background: repeating-linear-gradient(45deg, #7d5731, #7d5731 8px, #a77a47 8px, #a77a47 16px);
-  color: #fff;
-}
-
-.card.combo,
-.market-card:has(small) {
+.card.combo {
   border-color: #1d7fa5;
+  background: #eefaff;
 }
 
 .card.exhaust,
@@ -260,17 +340,15 @@ dialog button {
 .power {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  justify-self: end;
+  align-self: center;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: #ffe08a;
-  font-size: 1.35rem;
-  font-weight: 900;
-}
-
-.final-power,
-.victory {
-  font-weight: 900;
+  border: 2px solid #a66f20;
+  font-size: 1.6rem;
+  font-weight: 950;
 }
 
 .victory {
@@ -281,21 +359,26 @@ dialog button {
   text-align: center;
 }
 
-.lower {
-  display: grid;
-  gap: 14px;
-}
-
 .hand {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .market-grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.market-card {
+  min-height: 118px;
+  grid-template-rows: auto auto auto 1fr;
+}
+
+.market-power {
+  font-weight: 900;
+}
+
 .log {
-  max-height: calc(100vh - 142px);
+  grid-area: log;
+  max-height: calc(100dvh - 158px);
   overflow: auto;
 }
 
@@ -306,7 +389,8 @@ dialog button {
 .log p {
   padding: 8px 0;
   border-bottom: 1px solid #ead6b8;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
 }
 
 .empty {
@@ -323,39 +407,63 @@ dialog button {
   z-index: 10;
   display: grid;
   place-items: center;
-  padding: 18px;
-  background: rgba(45, 36, 27, 0.42);
+  padding: 12px;
+  background: rgba(45, 36, 27, 0.45);
 }
 
 .modal-box {
-  width: min(520px, 100%);
+  width: min(540px, 100%);
+  max-height: calc(100dvh - 24px);
   display: grid;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 8px;
+  gap: 12px;
+  overflow: auto;
+  padding: 16px;
 }
 
-.modal-box.wide {
-  width: min(760px, 100%);
+.modal-box.small {
+  width: min(360px, 100%);
+}
+
+.modal-box.wide,
+.modal-box.shop-modal {
+  width: min(860px, 100%);
 }
 
 .modal-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .modal-actions button:disabled {
   background: #9b9b9b;
 }
 
+.shop-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fff1ad;
+}
+
+.modal-market-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.modal-market-card {
+  min-height: 126px;
+}
+
 .mastery-list {
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
 dialog {
   max-width: 520px;
-  border: 2px solid #7d5731;
+  border: 2px solid #6d4525;
   border-radius: 8px;
   padding: 18px;
 }
@@ -367,6 +475,11 @@ dialog::backdrop {
 @media (max-width: 900px) {
   .app {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "players"
+      "main"
+      "log";
   }
 
   .topbar {
@@ -379,21 +492,36 @@ dialog::backdrop {
   }
 
   .log {
-    max-height: 260px;
+    max-height: 240px;
   }
 }
 
 @media (max-width: 560px) {
   .app {
+    gap: 8px;
     padding: 8px;
+  }
+
+  h1 {
+    font-size: 1.3rem;
+  }
+
+  .topbar p {
+    font-size: 0.86rem;
+  }
+
+  .players {
+    grid-template-columns: 1fr;
   }
 
   .player {
     grid-template-columns: 44px minmax(0, 1fr);
   }
 
-  .played-mini {
+  .player-side {
     grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    justify-items: stretch;
   }
 
   .avatar {
@@ -402,8 +530,29 @@ dialog::backdrop {
     font-size: 1.55rem;
   }
 
-  .card,
-  .market-card {
-    min-height: 112px;
+  .hand {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .card {
+    min-width: 0;
+    min-height: 132px;
+    padding: 9px;
+  }
+
+  .card strong,
+  .market-card strong {
+    font-size: 0.9rem;
+  }
+
+  .power {
+    width: 46px;
+    height: 46px;
+    font-size: 1.35rem;
+  }
+
+  .market-grid,
+  .modal-market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

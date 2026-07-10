@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { CARD_DEFINITIONS } from "../js/data/cards.js";
 import { PHASES } from "../js/data/constants.js";
 import { chooseWinnerReward, createCardInstance, createGame, getMasteryCandidates, loserAction, masterCard, playCard } from "../js/engine.js";
+import { render } from "../js/ui.js";
 
 function setHands(state, hands) {
   const next = structuredClone(state);
@@ -141,4 +142,19 @@ test("2 player setup inserts panda master and panda can win", () => {
   state = playFirstCard(state, "player-1");
   assert.equal(state.phase, PHASES.GAME_OVER);
   assert.equal(state.winnerId, panda.id);
+});
+
+test("human loser reward UI exposes card training and mastery wording includes deck removal", () => {
+  let state = createGame({ playerCount: 3, seed: 9 });
+  state = setHands(state, { "player-1": ["start_2"], "player-2": ["start_5"], "player-3": ["start_3"] });
+  state.players[0].experience = 4;
+  state = setOrder(state, "player-1");
+  state = playFirstCard(state, "player-1");
+  state = playFirstCard(state, "player-2");
+  state = playFirstCard(state, "player-3");
+  state = chooseWinnerReward(state, "fame");
+  const html = render(state);
+  assert.match(html, /패배 보상/);
+  assert.match(html, /data-action="buy"/);
+  assert.match(html, /기술 체득\(덱에서 제거\)/);
 });

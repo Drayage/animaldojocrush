@@ -308,7 +308,7 @@ export function masterCard(state, cardId) {
   const chosen = candidates.find((card) => card.id === cardId);
   if (!chosen) return state;
   next.duel.masteredCardId = cardId;
-  next = addLog(next, `${winner.name}이 ${chosen.name}을 완전히 체득했습니다.`);
+  next = addLog(next, `${winner.name}이 ${chosen.name}을 기술 체득(덱에서 제거)했습니다.`);
   return beginLoserActions(next);
 }
 
