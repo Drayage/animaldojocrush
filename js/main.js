@@ -1,4 +1,4 @@
-import { APP_VERSION } from "./app-config.js?v=20260710-10";
+import { APP_VERSION } from "./app-config.js?v=20260711-1";
 import { getAudioSettings, initAudio, playSfx, setAudioEnabled, startBgm, stopBgm } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
@@ -6,7 +6,8 @@ import { ANIMAL_DOJO as palette } from "./palettes.js";
 import { getAiIntent } from "./ai.js";
 import { createGame, reviveGame, setInputLocked } from "./engine.js";
 import { actionFromAiIntent, applyGameAction, GAME_ACTIONS } from "./game-actions.js";
-import { render } from "./ui.js?v=20260710-10";
+import { getSoundEvents } from "./sound-events.js";
+import { render } from "./ui.js?v=20260711-1";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");
@@ -26,11 +27,21 @@ function draw() { gameArea.innerHTML = render(state, ui); actionBar.innerHTML = 
 function setState(next, { save = true } = {}) { state = next; draw(); if (save) stableSave(); runAiIfNeeded(); }
 function startGame(playerCount) { clearTimeout(aiTimer); aiRunning = false; clearGame(); state = createGame({ playerCount, targetFame: ui.selectedTargetFame, milestoneMode: ui.milestoneMode }); ui = { ...ui, screen: "game", panel: null, selectedPlayers: playerCount, hasSave: true }; setState(state); if (ui.audio.bgmEnabled) startBgm(palette); }
 
+function queueSfx(name, delay = 0) {
+  if (delay) setTimeout(() => playSfx(palette, name), delay);
+  else playSfx(palette, name);
+}
+
+function playTransitionSounds(previous, next, action) {
+  getSoundEvents(previous, next, action).forEach((name, index) => queueSfx(name, index * 110));
+}
+
 function dispatch(action) {
+  const previous = state;
   const next = applyGameAction(state, action);
   if (next === state) return;
   setState(next);
-  playSfx(palette, action.type === GAME_ACTIONS.PLAY_CARD || action.type === GAME_ACTIONS.LOSER_ACTION ? "tap" : "confirm");
+  playTransitionSounds(previous, next, action);
 }
 
 function runAiIfNeeded() {

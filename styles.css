@@ -115,8 +115,21 @@ h1, h2, p { margin: 0; }
 .exhaust-sticker { background: #c74335; }
 .power-badge { position: absolute; z-index: 2; right: 6px; top: 6px; width: 36px; height: 36px; display: grid; place-items: center; color: #3f2c12; border: 2px solid #9b6c20; border-radius: 50%; background: var(--gold); box-shadow: 0 2px 0 #7d551d; font-size: 1.35rem; font-weight: 950; }
 .compact .power-badge { right: 4px; top: 4px; width: 30px; height: 30px; font-size: 1.08rem; }
-.card-art { display: grid; place-items: center; align-self: stretch; margin: 2px -2px 0; border-radius: 6px; background: #ffffff9c; font-size: 2.25rem; }
+.card-art { display: block; align-self: stretch; min-height: 64px; margin: 2px -2px 0; border-radius: 6px; }
 .compact .card-art { font-size: 1.7rem; }
+.card-illustration { background-image: url("./assets/card-art-sprite.jpg"); background-size: 400% 300%; background-repeat: no-repeat; background-color: #e8d9bd; box-shadow: inset 0 0 0 1px #ffffff80; }
+.art-c1-r1 { background-position: 0% 0%; }
+.art-c2-r1 { background-position: 33.333% 0%; }
+.art-c3-r1 { background-position: 66.667% 0%; }
+.art-c4-r1 { background-position: 100% 0%; }
+.art-c1-r2 { background-position: 0% 50%; }
+.art-c2-r2 { background-position: 33.333% 50%; }
+.art-c3-r2 { background-position: 66.667% 50%; }
+.art-c4-r2 { background-position: 100% 50%; }
+.art-c1-r3 { background-position: 0% 100%; }
+.art-c2-r3 { background-position: 33.333% 100%; }
+.art-c3-r3 { background-position: 66.667% 100%; }
+.art-c4-r3 { background-position: 100% 100%; }
 .card-name { min-height: 30px; display: grid; align-items: center; overflow-wrap: anywhere; font-size: .78rem; line-height: 1.15; text-align: center; }
 .compact .card-name { min-height: 25px; font-size: .65rem; }
 
@@ -154,7 +167,7 @@ h1, h2, p { margin: 0; }
 .market-card:disabled { opacity: .46; filter: grayscale(.25); }
 .market-card:not(:disabled):hover, .market-card:not(:disabled):focus-visible { outline: 3px solid #f2c344; transform: translateY(-2px); }
 .market-power { position: absolute; z-index: 2; right: 5px; top: 5px; width: 34px; height: 34px; display: grid; place-items: center; color: #3f2c12; border: 2px solid #9b6c20; border-radius: 50%; background: var(--gold); font-size: 1.2rem; font-weight: 950; }
-.market-art { display: grid; place-items: center; font-size: 2rem; }
+.market-art { display: block; min-height: 76px; margin: 2px 0; border-radius: 6px; }
 .market-card > strong { overflow-wrap: anywhere; font-size: .76rem; line-height: 1.12; }
 .market-meta { display: flex; align-items: center; justify-content: space-between; gap: 3px; margin-top: 5px; }
 .cost-badge { padding: 3px 5px; color: #fff; border-radius: 999px; background: #267fa0; font-size: .67rem; }
@@ -179,6 +192,20 @@ h1, h2, p { margin: 0; }
 .recap-milestones ul { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
 .recap-milestones li { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; }
 .milestone-modal > p { color: #66503e; }
+.milestone-result { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 10px; border: 2px solid #d4a52e; border-radius: 7px; background: #fff1aa; font-size: .8rem; }
+.milestone-track { display: grid; gap: 8px; padding: 10px; border: 1px solid #c9ad76; border-radius: 8px; background: #fffaf0; text-align: left; }
+.milestone-track-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.milestone-track-heading h3 { margin: 0; font-size: .9rem; }
+.milestone-track-heading small { color: #725f4b; font-size: .66rem; }
+.milestone-track-heading > b { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #fff; background: var(--green); font-size: .68rem; }
+.milestone-track-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.milestone-step { min-width: 0; display: grid; gap: 3px; padding: 7px; border: 1px dashed #bfae92; border-radius: 7px; background: #f2eadc; }
+.milestone-step > strong { color: #755217; font-size: 1rem; }
+.milestone-step > span { overflow-wrap: anywhere; font-size: .7rem; font-weight: 900; }
+.milestone-step > small { overflow: hidden; color: #75604e; font-size: .62rem; text-overflow: ellipsis; white-space: nowrap; }
+.milestone-step.claimed { border-style: solid; border-color: #d0a52d; background: #fff3b9; }
+.milestone-step.current { outline: 3px solid #e4b92f; animation: milestone-pulse .8s ease-in-out 2 alternate; }
+@keyframes milestone-pulse { to { transform: translateY(-2px); box-shadow: 0 5px 10px #79571e28; } }
 .owned-card-piles { display: grid; gap: 10px; margin-top: 10px; }
 .pile-section, .reward-candidates { padding: 10px; border: 1px solid #cdb899; border-radius: 8px; background: #fffdf7; text-align: left; }
 .pile-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -270,6 +297,9 @@ dialog::backdrop { background: #0008; }
   .target-options { grid-template-columns: repeat(5, 1fr); }
   .target-options input { width: 100%; min-width: 0; }
   .target-options button, .setting-toggle, .toggle-group button { min-width: 0; padding-inline: 4px; }
+  .milestone-track-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+  .milestone-step { padding: 5px; }
+  .milestone-step > span { font-size: .64rem; }
   .recap-list li { grid-template-columns: 1fr auto; }
   .recap-list li > strong { grid-column: 1 / -1; text-align: left; }
   .hero-card h1 { font-size: 3rem; }

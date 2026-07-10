@@ -1,5 +1,5 @@
 import { CARD_DEFINITIONS, MARKET_CARD_IDS, cardDef } from "./data/cards.js";
-import { PHASES, ZONES } from "./data/constants.js";
+import { MILESTONE_REWARDS, PHASES, ZONES } from "./data/constants.js";
 import { getMasteryCandidates, getMilestoneMasteryCandidates } from "./engine.js";
 
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
@@ -11,19 +11,23 @@ const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
 })[char]);
 
 const CARD_ART = Object.freeze({
-  start_1: "🐾",
-  start_2: "🛡️",
-  start_3: "🌀",
-  start_4: "⬇️",
-  start_5: "📣",
-  combo_stance: "🔗",
-  bunny_kick: "🦶",
-  tail_spin: "🌪️",
-  maple_combo: "🍁",
-  headbutt: "💥",
-  tiger_dash: "💨",
-  legend_fist: "✨"
+  start_1: "art-c1-r1",
+  start_2: "art-c2-r1",
+  start_3: "art-c3-r1",
+  start_4: "art-c4-r1",
+  start_5: "art-c1-r2",
+  combo_stance: "art-c2-r2",
+  bunny_kick: "art-c3-r2",
+  tail_spin: "art-c4-r2",
+  maple_combo: "art-c1-r3",
+  headbutt: "art-c2-r3",
+  tiger_dash: "art-c3-r3",
+  legend_fist: "art-c4-r3"
 });
+
+function cardArtHtml(definitionId, className = "card-art") {
+  return `<span class="${className} card-illustration ${CARD_ART[definitionId] || "art-c1-r1"}" aria-hidden="true"></span>`;
+}
 
 function effectMarker(definition) {
   if (definition.ability === "combo") return `<span class="effect-sticker combo-sticker" aria-label="연계 효과">🔗 연계</span>`;
@@ -40,7 +44,7 @@ function cardHtml(card, { disabled = false, action = "", compact = false, static
       ${!staticCard && disabled ? "disabled" : ""} ${action} title="${esc(definition.text)}" aria-label="${esc(description)}">
       ${effectMarker(definition)}
       <span class="power-badge" aria-label="위력 ${definition.power}">${definition.power}</span>
-      <span class="card-art" aria-hidden="true">${CARD_ART[definition.id] || "🥋"}</span>
+      ${cardArtHtml(definition.id)}
       <strong class="card-name">${esc(definition.name)}</strong>
     </${tag}>`;
 }
@@ -164,7 +168,7 @@ function marketContent(state) {
         data-action="buy" data-player-id="${activePlayer?.id || ""}" data-card-definition-id="${id}" title="${esc(definition.text)}" aria-label="${esc(definition.name)}, 위력 ${definition.power}, 비용 ${definition.cost}, 재고 ${stock}">
         ${effectMarker(definition)}
         <span class="market-power" aria-label="위력 ${definition.power}">${definition.power}</span>
-        <span class="market-art" aria-hidden="true">${CARD_ART[id] || "🥋"}</span>
+        ${cardArtHtml(id, "market-art")}
         <strong>${esc(definition.name)}</strong>
         <span class="market-meta"><b class="cost-badge">🔵 ${definition.cost}</b><small>재고 ${stock}</small></span>
       </button>`;
@@ -202,6 +206,18 @@ function milestoneRewardText(record) {
   return `다른 참가자 체득 ${removed}명`;
 }
 
+function milestoneTrackHtml(state) {
+  const rewards = MILESTONE_REWARDS.filter((reward) => reward.score < state.rules.targetFame);
+  return `<section class="milestone-track"><div class="milestone-track-heading"><div><h3>6점 선착 보상표</h3><small>각 점수에 먼저 도달한 참가자 한 명만 획득</small></div><b>목표 ${state.rules.targetFame}</b></div><div class="milestone-track-grid">${rewards.map((reward) => {
+    const playerId = state.milestones?.claimed?.[reward.score];
+    const player = state.players.find((item) => item.id === playerId);
+    const record = state.milestones?.history?.find((item) => item.score === reward.score);
+    const current = record?.duelNumber === state.duelNumber;
+    const rewardLabel = reward.type === "experience" ? `경험치 +${reward.amount}` : "기술 1개 체득";
+    return `<div class="milestone-step ${player ? "claimed" : "open"} ${current ? "current" : ""}"><strong>${reward.score}</strong><span>${reward.type === "experience" ? "🔵" : "✨"} ${rewardLabel}</span><small>${player ? `${player.portrait} ${esc(player.name)}` : "선착 대기"}</small></div>`;
+  }).join("")}</div></section>`;
+}
+
 function duelRecapHtml(state) {
   const winner = state.players.find((player) => player.id === state.duel.winnerId);
   const winnerPlay = state.duel.plays.find((play) => play.playerId === winner?.id);
@@ -213,8 +229,8 @@ function duelRecapHtml(state) {
     const action = state.duel.loserActions?.find((item) => item.playerId === play.playerId);
     return `<li><span class="recap-player">${player.portrait} <b>${esc(player.name)}</b></span><span>경험치 +${experience}</span><strong>${esc(loserActionText(action))}</strong></li>`;
   }).join("");
-  const milestones = state.milestones?.history?.filter((record) => record.duelNumber === state.duelNumber).map((record) => { const player = state.players.find((item) => item.id === record.playerId); return `<li><span>${player?.portrait} 명성 ${record.score} 선착</span><strong>${esc(milestoneRewardText(record))}</strong></li>`; }).join("") || "";
-  return `<div class="modal"><div class="modal-box wide duel-recap"><span class="result-icon">📋</span><h2>대련 ${state.duelNumber} 정리</h2><p>모든 참가자의 행동이 끝났습니다.</p><ul class="recap-list"><li class="recap-winner"><span class="recap-player">${winner?.portrait} <b>${esc(winner?.name)}</b></span><span>최종 위력 ${winnerPlay?.totalPower || 0}</span><strong>${esc(winnerChoice)}</strong></li>${loserRows}</ul>${milestones ? `<section class="recap-milestones"><h3>선착 보상</h3><ul>${milestones}</ul></section>` : ""}<button class="primary big" data-action="continue-duel">다음 대련 시작</button><small>확인하기 전에는 다음 대련과 AI 행동이 시작되지 않습니다.</small></div></div>`;
+  const milestoneResult = state.milestones?.history?.find((record) => record.duelNumber === state.duelNumber);
+  return `<div class="modal"><div class="modal-box wide duel-recap"><span class="result-icon">📋</span><h2>대련 ${state.duelNumber} 정리</h2><p>모든 참가자의 행동이 끝났습니다.</p><ul class="recap-list"><li class="recap-winner"><span class="recap-player">${winner?.portrait} <b>${esc(winner?.name)}</b></span><span>최종 위력 ${winnerPlay?.totalPower || 0}</span><strong>${esc(winnerChoice)}</strong></li>${loserRows}</ul>${milestoneResult ? `<div class="milestone-result"><b>이번 선착 보상</b><span>명성 ${milestoneResult.score} · ${esc(milestoneRewardText(milestoneResult))}</span></div>` : ""}${state.rules.milestoneMode ? milestoneTrackHtml(state) : ""}<button class="primary big" data-action="continue-duel">다음 대련 시작</button><small>확인하기 전에는 다음 대련과 AI 행동이 시작되지 않습니다.</small></div></div>`;
 }
 
 function pileSection(title, cards, emptyText, note = "") {
@@ -227,7 +243,7 @@ function ownedCardsContent(state) {
 }
 
 function settingsContent(state, ui) {
-  return `<div class="game-settings-panel"><div class="setting-row"><span>목표 명성</span><strong>${state.rules.targetFame}</strong></div><div class="setting-row"><span>6점 선착 보상</span><strong>${state.rules.milestoneMode ? "사용 중" : "미사용"}</strong></div>${audioToggles(ui)}<button class="secondary big" data-action="show-start">메인 화면</button><small>목표 명성과 선착 보상은 새 대회를 시작할 때 설정합니다.</small></div>`;
+  return `<div class="game-settings-panel"><div class="setting-row"><span>목표 명성</span><strong>${state.rules.targetFame}</strong></div><div class="setting-row"><span>6점 선착 보상</span><strong>${state.rules.milestoneMode ? "사용 중" : "미사용"}</strong></div>${state.rules.milestoneMode ? milestoneTrackHtml(state) : ""}${audioToggles(ui)}<button class="secondary big" data-action="show-start">메인 화면</button><small>목표 명성과 선착 보상은 새 대회를 시작할 때 설정합니다.</small></div>`;
 }
 
 function overlayPanel(state, ui) {
@@ -244,7 +260,7 @@ function overlayPanel(state, ui) {
 
 function milestoneCardsHtml(state, playerId, action) {
   const candidates = getMilestoneMasteryCandidates(state, playerId);
-  return candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.ability === "combo" ? "combo" : ""}" data-action="${action}" data-card-id="${card.id}" data-player-id="${playerId}">${effectMarker(definition)}<span class="market-power">${card.power}</span><span class="market-art">${CARD_ART[definition.id] || "🥋"}</span><strong>${esc(card.name)}</strong><small>${card.zone === ZONES.HAND ? "손패" : card.zone === ZONES.DECK ? "덱" : card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("");
+  return candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.ability === "combo" ? "combo" : ""}" data-action="${action}" data-card-id="${card.id}" data-player-id="${playerId}">${effectMarker(definition)}<span class="market-power">${card.power}</span>${cardArtHtml(definition.id, "market-art")}<strong>${esc(card.name)}</strong><small>${card.zone === ZONES.HAND ? "손패" : card.zone === ZONES.DECK ? "덱" : card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("");
 }
 
 function modalHtml(state) {
@@ -267,7 +283,7 @@ function modalHtml(state) {
   }
   if (state.phase === PHASES.WAITING_FOR_MASTERY_CARD && state.duel.winnerId === human.id) {
     const candidates = getMasteryCandidates(state, human.id);
-    return `<div class="modal"><div class="modal-box wide"><h2>기술 체득(덱에서 제거)</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}" data-action="master-card" data-card-id="${card.id}">${effectMarker(definition)}<span class="market-power">${card.power}</span><span class="market-art">${CARD_ART[definition.id] || "🥋"}</span><strong>${esc(card.name)}</strong><small>${card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("")}</div></div></div>`;
+    return `<div class="modal"><div class="modal-box wide"><h2>기술 체득(덱에서 제거)</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}" data-action="master-card" data-card-id="${card.id}">${effectMarker(definition)}<span class="market-power">${card.power}</span>${cardArtHtml(definition.id, "market-art")}<strong>${esc(card.name)}</strong><small>${card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("")}</div></div></div>`;
   }
   if (state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === human.id) {
     return `<div class="modal"><div class="modal-box"><span class="result-icon">💪</span><h2>패배 보상</h2><p>경험치를 사용할 방법을 선택하세요.</p><button class="primary" data-action="toggle-market">기술 수련소 열기</button><div class="modal-actions"><button data-action="train-fame" ${human.experience >= state.rules.trainingExperienceCost ? "" : "disabled"}>경험치 5 → 명성 1</button><button data-action="rest">경험치 보존</button></div></div></div>`;

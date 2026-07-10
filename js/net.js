@@ -5,7 +5,7 @@
 //  3) seq 가드 — 오래된 쓰기가 새 상태를 덮어쓰지 못하게
 //  4) 화면은 서버 확정 상태만 렌더 (낙관적 렌더 금지)
 //  5) 새로고침 시 방을 즉시 파괴하지 않음 — 유예 + 재입장
-import { APP_ID, FIREBASE_CONFIG } from "./app-config.js";
+import { FIREBASE_CONFIG, FIREBASE_ROOM_PATH } from "./app-config.js";
 import { saveRejoin, loadRejoin, clearRejoin } from "./storage.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -19,7 +19,7 @@ function ensureDb() {
   return db;
 }
 
-const roomsPath = (code) => `${APP_ID}_rooms/${code}`;
+const roomsPath = (code) => `${FIREBASE_ROOM_PATH}/${code}`;
 
 // ── (2) undefined 정화: 모든 쓰기는 이 함수를 통과시킬 것 ────────────
 export function sanitize(value) {

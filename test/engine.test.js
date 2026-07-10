@@ -5,6 +5,8 @@ import { PHASES } from "../js/data/constants.js";
 import { getAiIntent } from "../js/ai.js";
 import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, getMasteryCandidates, getMilestoneMasteryCandidates, loserAction, masterCard, playCard, resolveMilestoneFallback, resolveMilestoneMastery, reviveGame } from "../js/engine.js";
 import { applyGameAction, GAME_ACTIONS } from "../js/game-actions.js";
+import { ANIMAL_DOJO } from "../js/palettes.js";
+import { getSoundEvents } from "../js/sound-events.js";
 import { render } from "../js/ui.js";
 
 function setHands(state, hands) {
@@ -299,4 +301,56 @@ test("serializable game actions use the same reducer intended for online play", 
   const action = JSON.parse(JSON.stringify({ type: GAME_ACTIONS.PLAY_CARD, playerId: player.id, cardId: player.hand[0].id }));
   state = applyGameAction(state, action);
   assert.equal(state.duel.plays.length, 1);
+});
+
+test("duel recap shows the complete milestone reward track and claimant", () => {
+  const state = createGame({ playerCount: 2, seed: 19, targetFame: 50 });
+  state.phase = PHASES.WAITING_FOR_DUEL_RECAP;
+  state.duel.winnerId = "player-1";
+  state.duel.plays = [
+    { playerId: "player-1", totalPower: 5, cards: [] },
+    { playerId: "player-2", totalPower: 2, cards: [] },
+  ];
+  state.duel.experienceGains = [{ playerId: "player-2", amount: 2 }];
+  state.duel.loserActions = [{ playerId: "player-2", type: "rest" }];
+  state.rewardHistory = [{ duelNumber: 1, playerId: "player-1", choice: "fame", amount: 5 }];
+  state.milestones.claimed[6] = "player-1";
+  state.milestones.history = [{ score: 6, playerId: "player-1", rewardType: "experience", amount: 2, experienceGained: 2, duelNumber: 1, status: "resolved" }];
+
+  const html = render(state, { screen: "game", panel: null });
+  assert.match(html, /6점 선착 보상표/);
+  for (const score of [6, 12, 18, 24, 30, 36, 42]) assert.match(html, new RegExp(`>${score}<`));
+  assert.match(html, /토끼 무술가/);
+  assert.match(html, /이번 선착 보상/);
+});
+
+test("sound events cover duel victory, rewards, buying, mastery, and champion", () => {
+  const previous = createGame({ playerCount: 2, seed: 20 });
+  const playerId = previous.actingPlayerId;
+  const played = structuredClone(previous);
+  played.duel.plays = [{ playerId, cards: [createCardInstance("headbutt", playerId, "test")], totalPower: 9 }];
+  played.duel.winnerId = playerId;
+  assert.deepEqual(getSoundEvents(previous, played, { type: GAME_ACTIONS.PLAY_CARD, playerId }), ["card", "exhaust", "duelWin"]);
+
+  const rewarded = structuredClone(previous);
+  rewarded.players[0].fame += 6;
+  rewarded.players[0].experience += 2;
+  rewarded.milestones.history.push({ score: 6 });
+  rewarded.phase = PHASES.GAME_OVER;
+  assert.deepEqual(getSoundEvents(previous, rewarded, { type: GAME_ACTIONS.WINNER_REWARD, rewardType: "fame" }), ["milestone", "fame", "experience", "champion"]);
+
+  const bought = structuredClone(previous);
+  bought.market.bunny_kick -= 1;
+  assert.ok(getSoundEvents(previous, bought, { type: GAME_ACTIONS.LOSER_ACTION, action: { type: "buy" } }).includes("buy"));
+  assert.ok(getSoundEvents(previous, previous, { type: GAME_ACTIONS.MASTER_CARD, cardId: "card-1" }).includes("mastery"));
+
+  for (const name of ["card", "combo", "exhaust", "duelWin", "fame", "experience", "buy", "mastery", "milestone", "champion"]) {
+    assert.ok(ANIMAL_DOJO.sfx[name], `missing ${name} sound`);
+  }
+});
+
+test("card UI uses the generated game artwork sprite", () => {
+  const html = render(createGame({ playerCount: 2, seed: 21 }), { screen: "game", panel: "market" });
+  assert.match(html, /card-illustration art-c/);
+  assert.doesNotMatch(html, /class="market-art" aria-hidden="true">/);
 });
