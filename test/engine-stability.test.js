@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PHASES } from "../js/data/constants.js";
-import { chooseWinnerReward, createCardInstance, createGame, finishDuel, loserAction, playCard, reviveGame } from "../js/engine.js";
+import { chooseWinnerReward, confirmDuelRecap, createCardInstance, createGame, finishDuel, loserAction, playCard, reviveGame } from "../js/engine.js";
 
 function setOrder(state, firstId) {
   return {
@@ -12,13 +12,10 @@ function setOrder(state, firstId) {
   };
 }
 
-test("판다 사범이 카드를 낼 때 RNG 상태가 전진한다", () => {
-  let state = createGame({ playerCount: 2, seed: 100 });
-  const panda = state.players.find((player) => player.neutral);
-  state = setOrder(state, panda.id);
-  const before = state.rngSeed;
-  state = playCard(state, panda.id);
-  assert.notEqual(state.rngSeed, before);
+test("2인전은 일반 플레이어 두 명이 손패 3장으로 시작한다", () => {
+  const state = createGame({ playerCount: 2, seed: 100 });
+  assert.equal(state.players.length, 2);
+  assert.ok(state.players.every((player) => !player.neutral && player.hand.length === 3));
 });
 
 test("일반 플레이어 모두의 손패가 비었을 때만 수련 주기를 보충한다", () => {
@@ -85,5 +82,7 @@ test("연계 자세로 공개된 소모 기술은 대련 종료 후 소모 영�
     const loser = state.pending.loserActionPlayerId;
     state = loserAction(state, loser, { type: "rest" });
   }
+  assert.equal(state.phase, PHASES.WAITING_FOR_DUEL_RECAP);
+  state = confirmDuelRecap(state, p1.id);
   assert.ok(state.players[0].consumed.some((card) => card.definitionId === "headbutt"));
 });

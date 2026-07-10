@@ -1,6 +1,6 @@
 import { CARD_DEFINITIONS, cardDef } from "./data/cards.js";
 import { PHASES } from "./data/constants.js";
-import { getMasteryCandidates } from "./engine.js";
+import { getMasteryCandidates, getMilestoneMasteryCandidates } from "./engine.js";
 
 function currentBestPower(state) {
   return state.duel.plays.length ? Math.max(...state.duel.plays.map((play) => play.totalPower)) : -1;
@@ -60,6 +60,15 @@ export function getAiIntent(state) {
   const loser = state.players.find((player) => player.id === state.pending.loserActionPlayerId);
   if (state.phase === PHASES.WAITING_FOR_LOSER_ACTION && loser?.ai) {
     return { kind: "loser-action", playerId: loser.id, action: chooseAiLoserAction(state, loser) };
+  }
+  const milestonePlayer = state.players.find((player) => player.id === state.pending.milestoneActivePlayerId);
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_MASTERY && milestonePlayer?.ai) {
+    const card = getMilestoneMasteryCandidates(state, milestonePlayer.id).toSorted((a, b) => a.power - b.power)[0];
+    return { kind: "milestone-mastery", playerId: milestonePlayer.id, cardId: card?.id };
+  }
+  if (state.phase === PHASES.WAITING_FOR_MILESTONE_FALLBACK && milestonePlayer?.ai) {
+    const card = getMilestoneMasteryCandidates(state, milestonePlayer.id).toSorted((a, b) => a.power - b.power)[0];
+    return { kind: "milestone-fallback", playerId: milestonePlayer.id, cardId: card?.id || null };
   }
   return null;
 }

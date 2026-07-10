@@ -1,0 +1,29 @@
+{
+  "animaldojocrush_rooms": {
+    "$code": {
+      ".read": true,
+      ".write": true,
+      ".validate": "$code.matches(/^[A-Z0-9]{4,6}$/) && newData.hasChildren(['seq','createdAt','phase','players'])",
+      "seq": {
+        ".validate": "newData.isNumber() && newData.val() >= 0"
+      },
+      "createdAt": {
+        ".validate": "newData.isNumber()"
+      },
+      "phase": {
+        ".validate": "newData.isString() && newData.val().matches(/^(lobby|playing|ended)$/)"
+      },
+      "players": {
+        "$playerId": {
+          ".validate": "newData.hasChildren(['id','name'])"
+        }
+      },
+      "state": {
+        ".validate": "!newData.exists() || newData.hasChildren(['version','phase','players'])"
+      },
+      "$other": {
+        ".validate": false
+      }
+    }
+  }
+}

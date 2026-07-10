@@ -95,4 +95,65 @@ export const PASTEL = {
   },
 };
 
-export const ALL_PALETTES = { WOODY, CHIPTUNE, PASTEL };
+export const ANIMAL_DOJO = {
+  name: "동물도장",
+  sfx: {
+    ...PASTEL.sfx,
+    card: [
+      { t: "noise", dur: 0.07, gain: 0.18, hp: 1000, lp: 4200 },
+      { t: "tone", wave: "triangle", freq: 320, freqEnd: 480, dur: 0.09, gain: 0.24, lp: 2200 },
+    ],
+    combo: [
+      { t: "tone", wave: "triangle", freq: 440, freqEnd: 720, dur: 0.18, gain: 0.3, lp: 2800 },
+      { t: "tone", wave: "sine", freq: 660, freqEnd: 1040, dur: 0.22, gain: 0.17, attack: 0.05, lp: 3200 },
+    ],
+    exhaust: [
+      { t: "noise", dur: 0.18, gain: 0.26, hp: 600, lp: 3600 },
+      { t: "tone", wave: "sawtooth", freq: 250, freqEnd: 90, dur: 0.2, gain: 0.18, lp: 1500 },
+    ],
+    duelWin: [
+      { t: "tone", wave: "triangle", freq: 392, freqEnd: 523, dur: 0.28, gain: 0.32, lp: 2800 },
+      { t: "tone", wave: "triangle", freq: 523, freqEnd: 784, dur: 0.36, gain: 0.28, attack: 0.09, lp: 3000 },
+      { t: "noise", dur: 0.1, gain: 0.12, hp: 1600, lp: 4800 },
+    ],
+    fame: [
+      { t: "tone", wave: "sine", freq: 660, freqEnd: 990, dur: 0.2, gain: 0.23, lp: 3400 },
+      { t: "tone", wave: "triangle", freq: 880, freqEnd: 1320, dur: 0.28, gain: 0.16, attack: 0.08, lp: 3800 },
+    ],
+    experience: [
+      { t: "tone", wave: "sine", freq: 330, freqEnd: 494, dur: 0.18, gain: 0.24, lp: 2600 },
+      { t: "tone", wave: "sine", freq: 494, freqEnd: 659, dur: 0.2, gain: 0.16, attack: 0.07, lp: 3000 },
+    ],
+    buy: [
+      { t: "tone", wave: "triangle", freq: 294, freqEnd: 440, dur: 0.16, gain: 0.25, lp: 2500 },
+      { t: "tone", wave: "triangle", freq: 440, freqEnd: 587, dur: 0.2, gain: 0.2, attack: 0.08, lp: 2800 },
+    ],
+    mastery: [
+      { t: "tone", wave: "sine", freq: 523, freqEnd: 1047, dur: 0.42, gain: 0.25, lp: 3600 },
+      { t: "noise", dur: 0.24, gain: 0.08, hp: 2200, lp: 6000 },
+    ],
+    milestone: [
+      { t: "tone", wave: "triangle", freq: 523, dur: 0.14, gain: 0.27, lp: 3200 },
+      { t: "tone", wave: "triangle", freq: 659, dur: 0.16, gain: 0.24, attack: 0.1, lp: 3200 },
+      { t: "tone", wave: "triangle", freq: 784, dur: 0.3, gain: 0.22, attack: 0.2, lp: 3400 },
+    ],
+    champion: [
+      { t: "tone", wave: "triangle", freq: 392, freqEnd: 523, dur: 0.42, gain: 0.28, lp: 3000 },
+      { t: "tone", wave: "triangle", freq: 523, freqEnd: 784, dur: 0.48, gain: 0.25, attack: 0.14, lp: 3200 },
+      { t: "tone", wave: "sine", freq: 784, freqEnd: 1175, dur: 0.7, gain: 0.2, attack: 0.28, lp: 3800 },
+    ],
+  },
+  bgm: {
+    main: {
+      tempo: 84,
+      loopBeats: 16,
+      inst: { wave: "triangle", gain: 0.16, attack: 0.035, lp: 1800 },
+      notes: [
+        [0, 392, 1.5], [2, 523, 1], [4, 440, 1.5], [6, 330, 1],
+        [8, 349, 1.5], [10, 440, 1], [12, 494, 1], [14, 392, 2],
+      ],
+    },
+  },
+};
+
+export const ALL_PALETTES = { WOODY, CHIPTUNE, PASTEL, ANIMAL_DOJO };
