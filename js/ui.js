@@ -2,14 +2,200 @@ import { CARD_DEFINITIONS, MARKET_CARD_IDS, cardDef } from "./data/cards.js";
 import { PHASES, ZONES } from "./data/constants.js";
 import { getMasteryCandidates } from "./engine.js";
 
-const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
-function cardHtml(card,{disabled=false,action="",compact=false}={}){const d=cardDef(card);return `<button class="card ${compact?"compact":""} ${d.exhausts?"exhaust":""} ${d.ability==="combo"?"combo":""}" ${disabled?"disabled":""} ${action}><span class="card-kind">${d.exhausts?"소모":d.ability==="combo"?"연계":"기술"}</span><strong>${esc(d.name)}</strong><span class="power">${d.power}</span><small>${esc(d.text)}</small></button>`;}
-function rulesDialog(){return `<dialog id="rules-modal"><h2>게임 규칙</h2><p><b>1.</b> 선봉부터 기술 카드 1장씩 공개합니다.</p><p><b>2.</b> 가장 높은 위력이 승리하며, 동점이면 나중에 낸 참가자가 이깁니다.</p><p><b>3.</b> 승자는 명성을 얻거나 카드 1장을 체득합니다.</p><p><b>4.</b> 패자는 경험치를 얻어 새 기술을 구매합니다.</p><p><b>5.</b> 먼저 명성 50에 도달하면 우승합니다.</p><button data-action="close-rules">확인</button></dialog>`;}
-function startScreen(state,ui){return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 2인전에는 판다 사범이 자동 참가합니다.</p><div class="player-count">${[2,3,4].map(n=>`<button class="${ui.selectedPlayers===n?"selected":""}" data-action="select-players" data-count="${n}">${n}인</button>`).join("")}</div><button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave?`<button class="secondary big" data-action="continue-game">이어하기</button>`:""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;}
-function playerPanel(state,p){const play=state.duel.plays.find(x=>x.playerId===p.id);const acting=state.phase===PHASES.WAITING_FOR_CARD&&state.actingPlayerId===p.id;const choosing=state.pending.loserActionPlayerId===p.id||state.duel.winnerId===p.id&&[PHASES.WAITING_FOR_WINNER_REWARD,PHASES.WAITING_FOR_MASTERY_CARD].includes(state.phase);return `<article class="fighter ${p.human?"me":""} ${acting?"acting":""} ${choosing?"choosing":""}" style="--accent:${p.color}"><div class="avatar">${p.portrait}</div><div class="fighter-info"><div class="fighter-name"><strong>${esc(p.name)}</strong>${state.vanguardPlayerId===p.id?`<span class="badge">선봉</span>`:""}${p.neutral?`<span class="badge neutral">자동</span>`:""}</div><div class="stats"><span>⭐ ${p.fame}</span><span>🥋 ${p.neutral?"-":p.experience}</span><span>🂠 ${p.deck.length}</span><span>💤 ${p.rest.length}</span></div></div><div class="fighter-play">${play?`<b>${play.totalPower}</b><small>최종 위력</small>`:`<b>${p.neutral?"∞":p.hand.length}</b><small>${p.neutral?"자동 덱":"손패"}</small>`}</div></article>`;}
-function arenaHtml(state){const plays=state.duel.plays.map(play=>{const p=state.players.find(x=>x.id===play.playerId);return `<div class="duel-slot ${state.duel.winnerId===p.id?"winner":""}"><div class="duel-owner">${play.order+1}번째 · ${p.portrait} ${esc(p.name)}</div><div class="played-cards">${play.cards.map(c=>cardHtml(c,{disabled:true,compact:true})).join("")}</div><strong class="duel-power">${play.totalPower}</strong></div>`;}).join("");return `<section class="arena"><div class="arena-title"><div><span class="eyebrow">ROUND ${state.duelNumber}</span><h2>대련장</h2></div><div class="best-power">현재 최고 <b>${state.duel.highestPower}</b></div></div><div class="dojo-floor">${plays||`<div class="arena-empty"><span>🥋</span><p>선봉의 첫 기술을 기다리는 중</p></div>`}</div>${state.duel.winnerId?`<div class="victory-banner">🏆 ${esc(state.players.find(p=>p.id===state.duel.winnerId)?.name)} 대련 승리!</div>`:""}</section>`;}
-function handHtml(state){const h=state.players.find(p=>p.human);const can=state.phase===PHASES.WAITING_FOR_CARD&&state.actingPlayerId===h.id&&!state.inputLocked;return `<section class="hand-panel"><div class="panel-heading"><div><span class="eyebrow">MY TECHNIQUES</span><h2>내 손패</h2></div><span class="turn-message">${can?"기술을 선택하세요":state.inputLocked?"상대가 생각 중…":"차례를 기다리는 중"}</span></div><div class="hand">${h.hand.map(c=>cardHtml(c,{disabled:!can,action:`data-action="play-card" data-player-id="${h.id}" data-card-id="${c.id}"`})).join("")||`<div class="empty">손패가 비었습니다.</div>`}</div></section>`;}
-function marketContent(state){const a=state.players.find(p=>p.id===state.pending.loserActionPlayerId);const can=state.phase===PHASES.WAITING_FOR_LOSER_ACTION&&a?.human&&!state.inputLocked;const human=state.players.find(p=>p.human);return `<div class="market-summary"><span>보유 경험치 <b>${a?.human?a.experience:human.experience}</b></span><small>${can?"카드 1장을 수련할 수 있습니다.":"패배 보상 차례에 구매할 수 있습니다."}</small></div><div class="market-grid">${MARKET_CARD_IDS.map(id=>{const d=CARD_DEFINITIONS[id],stock=state.market[id],disabled=!can||stock<=0||a.experience<d.cost||a.boughtThisDuel;return `<button class="market-card ${d.exhausts?"exhaust":""}" ${disabled?"disabled":""} data-action="buy" data-player-id="${a?.id||""}" data-card-definition-id="${id}"><div><span class="card-kind">비용 ${d.cost}</span><strong>${esc(d.name)}</strong></div><span class="market-power">${d.power}</span><small>재고 ${stock} · ${esc(d.text)}</small></button>`;}).join("")}</div>`;}
-function overlayPanel(state,ui){if(!ui.panel)return"";const content=ui.panel==="market"?`<h2>🥋 기술 수련소</h2>${marketContent(state)}`:`<h2>📜 도장 기록</h2><div class="log-list">${state.log.map(x=>`<p>${esc(x.message)}</p>`).join("")}</div>`;return `<div class="sheet-backdrop" data-action="close-panel"><aside class="bottom-sheet"><div class="sheet-handle"></div><button class="sheet-close" data-action="close-panel">닫기</button>${content}</aside></div>`;}
-function modalHtml(state){if(state.inputLocked)return `<div class="modal"><div class="modal-box small"><div class="loader">🥋</div><h2>상대가 생각 중입니다</h2></div></div>`;const h=state.players.find(p=>p.human);if(state.phase===PHASES.WAITING_FOR_WINNER_REWARD&&state.duel.winnerId===h.id){const play=state.duel.plays.find(x=>x.playerId===h.id),c=getMasteryCandidates(state,h.id);return `<div class="modal"><div class="modal-box"><span class="result-icon">🏆</span><h2>승자 보상</h2><p>명성을 얻거나 약한 기술을 덱에서 제거할 수 있습니다.</p><div class="reward-grid"><button data-action="winner-fame"><b>⭐ +${play.totalPower}</b><span>명성 획득</span></button><button data-action="winner-mastery" ${c.length?"":"disabled"}><b>✨ 기술 체득</b><span>기술 체득(덱에서 제거)</span></button></div></div></div>`;}if(state.phase===PHASES.WAITING_FOR_MASTERY_CARD&&state.duel.winnerId===h.id){const c=getMasteryCandidates(state,h.id);return `<div class="modal"><div class="modal-box wide"><h2>체득할 기술 선택</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${c.map(x=>`<button data-action="master-card" data-card-id="${x.id}"><strong>${esc(x.name)}</strong><b>위력 ${x.power}</b><small>${x.zone===ZONES.REST?"휴식 더미":"이번 대련"} · 이후 ${x.remainingReusable}장</small></button>`).join("")}</div></div></div>`;}if(state.phase===PHASES.WAITING_FOR_LOSER_ACTION&&state.pending.loserActionPlayerId===h.id)return `<div class="modal"><div class="modal-box"><span class="result-icon">💪</span><h2>패배 보상</h2><p>경험치를 사용해 새 기술을 수련하거나 명성으로 바꿀 수 있습니다.</p><button class="primary" data-action="toggle-market">기술 수련소 열기</button><div class="modal-actions"><button data-action="train-fame" ${h.experience>=state.rules.trainingExperienceCost?"":"disabled"}>경험치 5 → 명성 1</button><button data-action="rest">경험치 보존</button></div></div></div>`;if(state.phase===PHASES.GAME_OVER){const w=state.players.find(p=>p.id===state.winnerId);return `<div class="modal"><div class="modal-box champion"><span>${w.portrait}</span><h2>${esc(w.name)} 우승!</h2><p>숲속 최고의 무술가가 되었습니다.</p><button class="primary big" data-action="new-game">새 대회 시작</button><button class="secondary" data-action="show-start">메인으로</button></div></div>`;}return"";}
-export function render(state,ui={screen:"game",panel:null}){if(ui.screen==="start")return startScreen(state,ui);const v=state.players.find(p=>p.id===state.vanguardPlayerId);return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">TRAINING CYCLE ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span>선봉 ${v?.portrait}</span><button data-action="toggle-rules">?</button></div></header><section class="fighters">${state.players.map(p=>playerPanel(state,p)).join("")}</section><section class="game-main">${arenaHtml(state)}${handHtml(state)}</section>${overlayPanel(state,ui)}${ui.panel?"":modalHtml(state)}${rulesDialog()}</main>`;}
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#039;"
+})[char]);
+
+const CARD_ART = Object.freeze({
+  start_1: "🐾",
+  start_2: "🛡️",
+  start_3: "🌀",
+  start_4: "⬇️",
+  start_5: "📣",
+  combo_stance: "🔗",
+  bunny_kick: "🦶",
+  tail_spin: "🌪️",
+  maple_combo: "🍁",
+  headbutt: "💥",
+  tiger_dash: "💨",
+  legend_fist: "✨"
+});
+
+function effectMarker(definition) {
+  if (definition.ability === "combo") return `<span class="effect-sticker combo-sticker" aria-label="연계 효과">🔗 연계</span>`;
+  if (definition.exhausts) return `<span class="effect-sticker exhaust-sticker" aria-label="소모 효과">⚡ 소모</span>`;
+  return `<span class="effect-sticker-placeholder" aria-hidden="true"></span>`;
+}
+
+function cardHtml(card, { disabled = false, action = "", compact = false } = {}) {
+  const definition = cardDef(card);
+  const description = `${definition.name}, 위력 ${definition.power}. ${definition.text}`;
+  return `
+    <button class="technique-card ${compact ? "compact" : ""} ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}"
+      ${disabled ? "disabled" : ""} ${action} title="${esc(definition.text)}" aria-label="${esc(description)}">
+      ${effectMarker(definition)}
+      <span class="power-badge" aria-label="위력 ${definition.power}">${definition.power}</span>
+      <span class="card-art" aria-hidden="true">${CARD_ART[definition.id] || "🥋"}</span>
+      <strong class="card-name">${esc(definition.name)}</strong>
+    </button>`;
+}
+
+function rulesDialog() {
+  return `<dialog id="rules-modal"><h2>게임 규칙</h2><p><b>1.</b> 선봉부터 기술 카드 1장씩 공개합니다.</p><p><b>2.</b> 가장 높은 위력이 승리하며, 동점이면 나중에 낸 참가자가 이깁니다.</p><p><b>3.</b> 승자는 명성을 얻거나 기술 체득(덱에서 제거)을 선택합니다.</p><p><b>4.</b> 패자는 경험치를 얻어 새 기술을 수련합니다.</p><p><b>5.</b> 먼저 명성 50에 도달하면 우승합니다.</p><button data-action="close-rules">확인</button></dialog>`;
+}
+
+function startScreen(state, ui) {
+  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 2인전에는 판다 사범이 자동 참가합니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div><button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
+}
+
+function seatAssignments(state) {
+  const human = state.players.find((player) => player.human);
+  const opponents = state.players.filter((player) => !player.human);
+  const assignments = new Map([[human.id, "bottom"]]);
+
+  if (state.settings?.playerCount === 2) {
+    const panda = opponents.find((player) => player.neutral);
+    const rival = opponents.find((player) => !player.neutral);
+    if (panda) assignments.set(panda.id, "top");
+    if (rival) assignments.set(rival.id, "top-left");
+  } else if (opponents.length === 2) {
+    assignments.set(opponents[0].id, "top-left");
+    assignments.set(opponents[1].id, "top-right");
+  } else {
+    assignments.set(opponents[0]?.id, "top-left");
+    assignments.set(opponents[1]?.id, "top");
+    assignments.set(opponents[2]?.id, "top-right");
+  }
+  return assignments;
+}
+
+function playerPanel(state, player, seat) {
+  const acting = state.phase === PHASES.WAITING_FOR_CARD && state.actingPlayerId === player.id;
+  const choosing = state.pending.loserActionPlayerId === player.id
+    || (state.duel.winnerId === player.id && [PHASES.WAITING_FOR_WINNER_REWARD, PHASES.WAITING_FOR_MASTERY_CARD].includes(state.phase));
+  const status = acting ? "현재 차례" : choosing ? "선택 중" : "";
+  return `
+    <article class="fighter seat-${seat} ${player.human ? "me" : ""} ${acting ? "acting" : ""} ${choosing ? "choosing" : ""}" style="--accent:${player.color}" data-seat="${seat}">
+      <div class="avatar" aria-hidden="true">${player.portrait}</div>
+      <div class="fighter-info">
+        <div class="fighter-name"><strong>${player.human ? "나 · " : ""}${esc(player.name)}</strong>${state.vanguardPlayerId === player.id ? `<span class="badge vanguard">선봉</span>` : ""}${status ? `<span class="badge turn-badge">${status}</span>` : ""}</div>
+        <div class="stats" aria-label="참가자 상태">
+          <span title="명성">⭐ <b>${player.fame}</b></span>
+          <span title="경험치">🔵 <b>${player.neutral ? "-" : player.experience}</b></span>
+          <span title="덱">🂠 <b>${player.deck.length}</b></span>
+          <span title="휴식 더미">💤 <b>${player.rest.length}</b></span>
+          ${!player.human ? `<span title="손패">✋ <b>${player.neutral ? "-" : player.hand.length}</b></span>` : ""}
+        </div>
+      </div>
+    </article>`;
+}
+
+function arenaSlot(state, player, seat) {
+  const play = state.duel.plays.find((item) => item.playerId === player.id);
+  if (!play) return "";
+  const isWinner = state.duel.winnerId === player.id;
+  return `
+    <div class="duel-slot slot-${seat} ${isWinner ? "winner" : ""}">
+      <div class="duel-owner"><span>${player.portrait}</span><strong>${player.human ? "나" : esc(player.name)}</strong></div>
+      <div class="played-cards">${play.cards.map((card) => cardHtml(card, { disabled: true, compact: true })).join("")}</div>
+      <strong class="duel-power" aria-label="최종 위력 ${play.totalPower}">${play.totalPower}</strong>
+    </div>`;
+}
+
+function arenaHtml(state, seats) {
+  const winner = state.players.find((player) => player.id === state.duel.winnerId);
+  const slots = state.players.map((player) => arenaSlot(state, player, seats.get(player.id))).join("");
+  const centerText = winner ? `${winner.portrait} 대련 승리` : state.duel.plays.length ? `현재 최고 ${state.duel.highestPower}` : "대련 준비";
+  return `
+    <section class="arena" aria-label="중앙 대련장">
+      <div class="arena-heading"><span>대련 ${state.duelNumber}</span><strong>대련장</strong></div>
+      <div class="dojo-floor">
+        ${slots}
+        <div class="arena-status ${winner ? "victory" : ""}"><span>${centerText}</span>${!winner && state.duel.plays.length ? `<b>${state.duel.highestPower}</b>` : ""}</div>
+      </div>
+    </section>`;
+}
+
+function tableHtml(state) {
+  const seats = seatAssignments(state);
+  const human = state.players.find((player) => player.human);
+  const opponents = state.players.filter((player) => !player.human);
+  return `
+    <section class="table-layout player-count-${state.settings?.playerCount || state.players.length}">
+      <div class="opponent-seats">${opponents.map((player) => playerPanel(state, player, seats.get(player.id))).join("")}</div>
+      ${arenaHtml(state, seats)}
+      <div class="home-seat">${playerPanel(state, human, "bottom")}</div>
+    </section>`;
+}
+
+function handHtml(state) {
+  const human = state.players.find((player) => player.human);
+  const canPlay = state.phase === PHASES.WAITING_FOR_CARD && state.actingPlayerId === human.id && !state.inputLocked;
+  return `
+    <section class="hand-panel ${canPlay ? "ready" : ""}">
+      <div class="panel-heading"><div><span class="eyebrow">MY TECHNIQUES</span><h2>${human.portrait} 내 손패</h2></div><span class="turn-message">${canPlay ? "낼 기술을 선택하세요" : state.inputLocked ? "상대 차례" : "대기 중"}</span></div>
+      <div class="hand">${human.hand.map((card) => cardHtml(card, { disabled: !canPlay, action: `data-action="play-card" data-player-id="${human.id}" data-card-id="${card.id}"` })).join("") || `<div class="empty">손패가 비었습니다.</div>`}</div>
+    </section>`;
+}
+
+function marketContent(state) {
+  const activePlayer = state.players.find((player) => player.id === state.pending.loserActionPlayerId);
+  const canBuy = state.phase === PHASES.WAITING_FOR_LOSER_ACTION && activePlayer?.human && !state.inputLocked;
+  const human = state.players.find((player) => player.human);
+  return `<div class="market-summary"><span>보유 경험치 <b>${activePlayer?.human ? activePlayer.experience : human.experience}</b></span><small>${canBuy ? "기술 1장을 선택하세요" : "패배 보상 차례에 수련 가능"}</small></div><div class="market-grid">${MARKET_CARD_IDS.map((id) => {
+    const definition = CARD_DEFINITIONS[id];
+    const stock = state.market[id];
+    const disabled = !canBuy || stock <= 0 || activePlayer.experience < definition.cost || activePlayer.boughtThisDuel;
+    return `
+      <button class="market-card ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}" ${disabled ? "disabled" : ""}
+        data-action="buy" data-player-id="${activePlayer?.id || ""}" data-card-definition-id="${id}" title="${esc(definition.text)}" aria-label="${esc(definition.name)}, 위력 ${definition.power}, 비용 ${definition.cost}, 재고 ${stock}">
+        ${effectMarker(definition)}
+        <span class="market-power" aria-label="위력 ${definition.power}">${definition.power}</span>
+        <span class="market-art" aria-hidden="true">${CARD_ART[id] || "🥋"}</span>
+        <strong>${esc(definition.name)}</strong>
+        <span class="market-meta"><b class="cost-badge">🔵 ${definition.cost}</b><small>재고 ${stock}</small></span>
+      </button>`;
+  }).join("")}</div>`;
+}
+
+function overlayPanel(state, ui) {
+  if (!ui.panel) return "";
+  const content = ui.panel === "market" ? `<h2>🥋 기술 수련소</h2>${marketContent(state)}` : `<h2>📜 도장 기록</h2><div class="log-list">${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</div>`;
+  return `<div class="sheet-backdrop" data-action="close-panel"><aside class="bottom-sheet"><div class="sheet-handle"></div><button class="sheet-close" data-action="close-panel" aria-label="닫기">×</button>${content}</aside></div>`;
+}
+
+function modalHtml(state) {
+  if (state.inputLocked) return `<div class="modal"><div class="modal-box small"><div class="loader">🥋</div><h2>상대가 생각 중입니다</h2></div></div>`;
+  const human = state.players.find((player) => player.human);
+  if (state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id) {
+    const play = state.duel.plays.find((item) => item.playerId === human.id);
+    const candidates = getMasteryCandidates(state, human.id);
+    return `<div class="modal"><div class="modal-box"><span class="result-icon">🏆</span><h2>승자 보상</h2><p>이번 승리의 보상을 선택하세요.</p><div class="reward-grid"><button data-action="winner-fame"><b>⭐ +${play.totalPower}</b><span>명성 획득</span></button><button data-action="winner-mastery" ${candidates.length ? "" : "disabled"}><b>✨ 기술 체득</b><span>덱에서 카드 제거</span></button></div></div></div>`;
+  }
+  if (state.phase === PHASES.WAITING_FOR_MASTERY_CARD && state.duel.winnerId === human.id) {
+    const candidates = getMasteryCandidates(state, human.id);
+    return `<div class="modal"><div class="modal-box wide"><h2>기술 체득(덱에서 제거)</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${candidates.map((card) => `<button data-action="master-card" data-card-id="${card.id}"><strong>${esc(card.name)}</strong><b>위력 ${card.power}</b><small>${card.zone === ZONES.REST ? "휴식 더미" : "이번 대련"} · 이후 ${card.remainingReusable}장</small></button>`).join("")}</div></div></div>`;
+  }
+  if (state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === human.id) {
+    return `<div class="modal"><div class="modal-box"><span class="result-icon">💪</span><h2>패배 보상</h2><p>경험치를 사용할 방법을 선택하세요.</p><button class="primary" data-action="toggle-market">기술 수련소 열기</button><div class="modal-actions"><button data-action="train-fame" ${human.experience >= state.rules.trainingExperienceCost ? "" : "disabled"}>경험치 5 → 명성 1</button><button data-action="rest">경험치 보존</button></div></div></div>`;
+  }
+  if (state.phase === PHASES.GAME_OVER) {
+    const winner = state.players.find((player) => player.id === state.winnerId);
+    return `<div class="modal"><div class="modal-box champion"><span>${winner.portrait}</span><h2>${esc(winner.name)} 우승!</h2><p>숲속 최고의 무술가가 되었습니다.</p><button class="primary big" data-action="new-game">새 대회 시작</button><button class="secondary" data-action="show-start">메인으로</button></div></div>`;
+  }
+  return "";
+}
+
+export function render(state, ui) {
+  const view = ui || {
+    screen: "game",
+    panel: state.phase === PHASES.WAITING_FOR_LOSER_ACTION ? "market" : null
+  };
+  if (view.screen === "start") return startScreen(state, view);
+  const vanguard = state.players.find((player) => player.id === state.vanguardPlayerId);
+  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header><section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
+}
