@@ -1,6 +1,6 @@
 export const APP_ID = "animaldojocrush";
 export const APP_NAME = "우당탕 동물도장";
-export const APP_VERSION = "20260711-1";
+export const APP_VERSION = "20260711-2";
 export const FIREBASE_ROOM_PATH = "animaldojocrush_rooms";
 
 export const FIREBASE_CONFIG = {

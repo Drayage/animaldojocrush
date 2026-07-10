@@ -1,4 +1,4 @@
-import { APP_VERSION } from "./app-config.js?v=20260711-1";
+import { APP_VERSION } from "./app-config.js?v=20260711-2";
 import { getAudioSettings, initAudio, playSfx, setAudioEnabled, startBgm, stopBgm } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
@@ -7,7 +7,7 @@ import { getAiIntent } from "./ai.js";
 import { createGame, reviveGame, setInputLocked } from "./engine.js";
 import { actionFromAiIntent, applyGameAction, GAME_ACTIONS } from "./game-actions.js";
 import { getSoundEvents } from "./sound-events.js";
-import { render } from "./ui.js?v=20260711-1";
+import { render } from "./ui.js?v=20260711-2";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");
