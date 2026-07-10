@@ -96,6 +96,7 @@ h1, h2, p { margin: 0; }
 .technique-card:disabled { opacity: .48; filter: saturate(.65); }
 .technique-card:not(:disabled):hover, .technique-card:not(:disabled):focus-visible { z-index: 3; transform: translateY(-5px); outline: 3px solid #f2c344; box-shadow: 0 8px 14px #3b281f3a; }
 .technique-card:not(:disabled):active { transform: translateY(-1px) scale(.97); }
+.technique-card.static-card { cursor: default; }
 .technique-card.compact { width: 86px; aspect-ratio: .76; padding: 5px; border-width: 1px; }
 .effect-sticker, .effect-sticker-placeholder { position: relative; z-index: 2; align-self: start; justify-self: start; min-height: 19px; }
 .effect-sticker { display: inline-flex; align-items: center; padding: 2px 5px; color: #fff; border-radius: 3px; box-shadow: 1px 2px 0 #0002; font-size: .58rem; font-weight: 950; transform: rotate(-2deg); }
@@ -111,6 +112,8 @@ h1, h2, p { margin: 0; }
 /* Hand */
 .hand-panel { position: sticky; z-index: 7; bottom: 66px; padding: 10px; border: 2px solid #684b35; border-radius: 8px; background: #fffaf0f5; box-shadow: 0 -4px 14px #4a30172c; backdrop-filter: blur(8px); }
 .hand-panel.ready { border-color: #24705f; box-shadow: 0 0 0 3px #bfe4d7, 0 -5px 15px #4a30172c; }
+.hand-panel.ready .technique-card:not(:disabled) { transform: translateY(-3px); outline: 3px solid #f3c94f; background: #ffffff; box-shadow: 0 7px 13px #4f34233d, 0 0 14px #f3c94f70; }
+.hand-panel.ready .technique-card:not(:disabled):hover, .hand-panel.ready .technique-card:not(:disabled):focus-visible { transform: translateY(-7px); outline-color: #e6a91e; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .panel-heading h2 { font-size: 1rem; }
 .turn-message { padding: 5px 8px; border-radius: 999px; color: #5d4938; background: #eee3d1; font-size: .72rem; font-weight: 850; }
@@ -128,6 +131,12 @@ h1, h2, p { margin: 0; }
 .reward-grid b, .reward-grid span { display: block; }
 .modal-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .mastery-list, .market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; }
+.mastery-option { position: relative; min-height: 148px; display: grid; grid-template-rows: 20px 1fr auto auto; overflow: hidden; padding: 7px; color: #24483e; border: 2px solid #3d6c5f; border-radius: 8px; background: #f5fff8; text-align: center; }
+.mastery-option.combo { color: #205166; border-color: #2d82a6; background: #effaff; }
+.mastery-option.exhaust { color: #6f2c25; border-color: #b84c3d; background: #fff0ec; }
+.mastery-option:hover, .mastery-option:focus-visible { outline: 3px solid #f2c344; transform: translateY(-2px); }
+.mastery-option > strong { overflow-wrap: anywhere; font-size: .76rem; }
+.mastery-option > small { margin-top: 5px; color: #66503e; font-size: .65rem; }
 .market-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0 10px; padding: 9px; border-radius: 6px; background: #f4e3c3; }
 .market-card { position: relative; min-height: 142px; display: grid; grid-template-rows: 20px 1fr auto auto; overflow: hidden; padding: 7px; color: #24483e; border: 2px solid #3d6c5f; border-radius: 8px; background: #f5fff8; text-align: center; }
 .market-card.combo { color: #205166; border-color: #2d82a6; background: #effaff; }
@@ -139,6 +148,16 @@ h1, h2, p { margin: 0; }
 .market-meta { display: flex; align-items: center; justify-content: space-between; gap: 3px; margin-top: 5px; }
 .cost-badge { padding: 3px 5px; color: #fff; border-radius: 999px; background: #267fa0; font-size: .67rem; }
 .market-meta small { color: #66503e; font-size: .65rem; }
+.owned-card-piles { display: grid; gap: 10px; margin-top: 10px; }
+.pile-section, .reward-candidates { padding: 10px; border: 1px solid #cdb899; border-radius: 8px; background: #fffdf7; text-align: left; }
+.pile-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.pile-heading h3 { margin: 0; font-size: .92rem; }
+.pile-heading small { display: block; margin-top: 2px; color: #765f4c; font-size: .68rem; }
+.pile-heading > b { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #fff; background: var(--green); font-size: .7rem; }
+.pile-cards { display: flex; gap: 7px; overflow-x: auto; padding: 3px 2px 7px; scroll-snap-type: x proximity; }
+.pile-cards .technique-card { flex: 0 0 86px; scroll-snap-align: start; }
+.pile-empty { width: 100%; padding: 14px; color: #806b58; text-align: center; }
+.reward-candidates { max-width: 100%; background: #fff8db; }
 .bottom-sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 84dvh; overflow: auto; padding: 12px 12px calc(18px + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; background: #fffaf0; }
 .bottom-sheet > h2 { font-size: 1.1rem; }
 .sheet-handle { width: 46px; height: 5px; margin: 0 auto 8px; border-radius: 99px; background: #c8b7a1; }
@@ -151,7 +170,7 @@ dialog { max-width: 520px; padding: 18px; border: 2px solid #76543a; border-radi
 dialog p { margin: 10px 0; line-height: 1.5; }
 dialog::backdrop { background: #0008; }
 
-#action-bar { position: fixed; z-index: 12; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 7px max(9px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left)); background: var(--green-dark); border-top: 1px solid #ffffff22; }
+#action-bar { position: fixed; z-index: 12; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 7px max(9px, env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(9px, env(safe-area-inset-left)); background: var(--green-dark); border-top: 1px solid #ffffff22; }
 #action-bar:empty { display: none; }
 #action-bar button { min-height: 46px; color: #fff; border-radius: 8px; background: #ffffff12; font-weight: 900; }
 
@@ -207,6 +226,7 @@ dialog::backdrop { background: #0008; }
   .technique-card { width: 100%; max-width: 105px; }
   .card-name { font-size: .7rem; }
   .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #action-bar button { padding: 4px 2px; font-size: .76rem; }
   .reward-grid { grid-template-columns: 1fr; }
   .hero-card h1 { font-size: 3rem; }
 }

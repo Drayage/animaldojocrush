@@ -31,17 +31,18 @@ function effectMarker(definition) {
   return `<span class="effect-sticker-placeholder" aria-hidden="true"></span>`;
 }
 
-function cardHtml(card, { disabled = false, action = "", compact = false } = {}) {
+function cardHtml(card, { disabled = false, action = "", compact = false, staticCard = false } = {}) {
   const definition = cardDef(card);
   const description = `${definition.name}, 위력 ${definition.power}. ${definition.text}`;
+  const tag = staticCard ? "div" : "button";
   return `
-    <button class="technique-card ${compact ? "compact" : ""} ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}"
-      ${disabled ? "disabled" : ""} ${action} title="${esc(definition.text)}" aria-label="${esc(description)}">
+    <${tag} class="technique-card ${staticCard ? "static-card" : ""} ${compact ? "compact" : ""} ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}"
+      ${!staticCard && disabled ? "disabled" : ""} ${action} title="${esc(definition.text)}" aria-label="${esc(description)}">
       ${effectMarker(definition)}
       <span class="power-badge" aria-label="위력 ${definition.power}">${definition.power}</span>
       <span class="card-art" aria-hidden="true">${CARD_ART[definition.id] || "🥋"}</span>
       <strong class="card-name">${esc(definition.name)}</strong>
-    </button>`;
+    </${tag}>`;
 }
 
 function rulesDialog() {
@@ -49,7 +50,7 @@ function rulesDialog() {
 }
 
 function startScreen(state, ui) {
-  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 2인전에는 판다 사범이 자동 참가합니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div><button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
+  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 나머지 참가자는 일반 AI가 맡습니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div><button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
 }
 
 function seatAssignments(state) {
@@ -58,10 +59,7 @@ function seatAssignments(state) {
   const assignments = new Map([[human.id, "bottom"]]);
 
   if (state.settings?.playerCount === 2) {
-    const panda = opponents.find((player) => player.neutral);
-    const rival = opponents.find((player) => !player.neutral);
-    if (panda) assignments.set(panda.id, "top");
-    if (rival) assignments.set(rival.id, "top-left");
+    assignments.set(opponents[0].id, "top");
   } else if (opponents.length === 2) {
     assignments.set(opponents[0].id, "top-left");
     assignments.set(opponents[1].id, "top-right");
@@ -101,7 +99,7 @@ function arenaSlot(state, player, seat) {
   return `
     <div class="duel-slot slot-${seat} ${isWinner ? "winner" : ""}">
       <div class="duel-owner"><span>${player.portrait}</span><strong>${player.human ? "나" : esc(player.name)}</strong></div>
-      <div class="played-cards">${play.cards.map((card) => cardHtml(card, { disabled: true, compact: true })).join("")}</div>
+      <div class="played-cards">${play.cards.map((card) => cardHtml(card, { compact: true, staticCard: true })).join("")}</div>
       <strong class="duel-power" aria-label="최종 위력 ${play.totalPower}">${play.totalPower}</strong>
     </div>`;
 }
@@ -137,7 +135,7 @@ function handHtml(state) {
   const canPlay = state.phase === PHASES.WAITING_FOR_CARD && state.actingPlayerId === human.id && !state.inputLocked;
   return `
     <section class="hand-panel ${canPlay ? "ready" : ""}">
-      <div class="panel-heading"><div><span class="eyebrow">MY TECHNIQUES</span><h2>${human.portrait} 내 손패</h2></div><span class="turn-message">${canPlay ? "낼 기술을 선택하세요" : state.inputLocked ? "상대 차례" : "대기 중"}</span></div>
+      <div class="panel-heading"><div><span class="eyebrow">MY TECHNIQUES</span><h2>${human.portrait} 내 손패</h2></div><span class="turn-message">${canPlay ? "내 차례 · 기술 선택" : state.inputLocked ? "상대 차례" : "대기 중"}</span></div>
       <div class="hand">${human.hand.map((card) => cardHtml(card, { disabled: !canPlay, action: `data-action="play-card" data-player-id="${human.id}" data-card-id="${card.id}"` })).join("") || `<div class="empty">손패가 비었습니다.</div>`}</div>
     </section>`;
 }
@@ -162,9 +160,22 @@ function marketContent(state) {
   }).join("")}</div>`;
 }
 
+function pileSection(title, cards, emptyText, note = "") {
+  return `<section class="pile-section"><div class="pile-heading"><div><h3>${title}</h3>${note ? `<small>${note}</small>` : ""}</div><b>${cards.length}장</b></div><div class="pile-cards">${cards.map((card) => cardHtml(card, { compact: true, staticCard: true })).join("") || `<p class="pile-empty">${emptyText}</p>`}</div></section>`;
+}
+
+function ownedCardsContent(state) {
+  const human = state.players.find((player) => player.human);
+  return `<div class="owned-card-piles">${pileSection("덱에 남은 카드", human.deck, "덱이 비었습니다.", "순서와 관계없이 구성만 표시")}${pileSection("버린 카드 · 휴식 더미", human.rest, "버린 카드가 없습니다.", "승리하면 이곳의 일반 카드를 없앨 수 있음")}${human.played.length ? pileSection("이번 대련에 낸 카드", human.played, "", "승리하면 일반 카드를 없앨 수 있음") : ""}</div>`;
+}
+
 function overlayPanel(state, ui) {
   if (!ui.panel) return "";
-  const content = ui.panel === "market" ? `<h2>🥋 기술 수련소</h2>${marketContent(state)}` : `<h2>📜 도장 기록</h2><div class="log-list">${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</div>`;
+  const content = ui.panel === "market"
+    ? `<h2>🥋 기술 수련소</h2>${marketContent(state)}`
+    : ui.panel === "cards"
+      ? `<h2>🂠 내 카드</h2>${ownedCardsContent(state)}`
+      : `<h2>📜 도장 기록</h2><div class="log-list">${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</div>`;
   return `<div class="sheet-backdrop" data-action="close-panel"><aside class="bottom-sheet"><div class="sheet-handle"></div><button class="sheet-close" data-action="close-panel" aria-label="닫기">×</button>${content}</aside></div>`;
 }
 
@@ -174,11 +185,11 @@ function modalHtml(state) {
   if (state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id) {
     const play = state.duel.plays.find((item) => item.playerId === human.id);
     const candidates = getMasteryCandidates(state, human.id);
-    return `<div class="modal"><div class="modal-box"><span class="result-icon">🏆</span><h2>승자 보상</h2><p>이번 승리의 보상을 선택하세요.</p><div class="reward-grid"><button data-action="winner-fame"><b>⭐ +${play.totalPower}</b><span>명성 획득</span></button><button data-action="winner-mastery" ${candidates.length ? "" : "disabled"}><b>✨ 기술 체득</b><span>덱에서 카드 제거</span></button></div></div></div>`;
+    return `<div class="modal"><div class="modal-box wide"><span class="result-icon">🏆</span><h2>승자 보상</h2><p>이번 승리의 보상을 선택하세요.</p>${candidates.length ? `<section class="reward-candidates"><div class="pile-heading"><div><h3>없앨 수 있는 카드</h3><small>버린 카드와 이번 대련의 일반 카드</small></div><b>${candidates.length}장</b></div><div class="pile-cards">${candidates.map((candidate) => cardHtml(candidate.definitionId, { compact: true, staticCard: true })).join("")}</div></section>` : ""}<div class="reward-grid"><button data-action="winner-fame"><b>⭐ +${play.totalPower}</b><span>명성 획득</span></button><button data-action="winner-mastery" ${candidates.length ? "" : "disabled"}><b>✨ 기술 체득</b><span>덱에서 카드 제거</span></button></div></div></div>`;
   }
   if (state.phase === PHASES.WAITING_FOR_MASTERY_CARD && state.duel.winnerId === human.id) {
     const candidates = getMasteryCandidates(state, human.id);
-    return `<div class="modal"><div class="modal-box wide"><h2>기술 체득(덱에서 제거)</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${candidates.map((card) => `<button data-action="master-card" data-card-id="${card.id}"><strong>${esc(card.name)}</strong><b>위력 ${card.power}</b><small>${card.zone === ZONES.REST ? "휴식 더미" : "이번 대련"} · 이후 ${card.remainingReusable}장</small></button>`).join("")}</div></div></div>`;
+    return `<div class="modal"><div class="modal-box wide"><h2>기술 체득(덱에서 제거)</h2><p>선택한 카드는 이번 게임에서 영구 제거됩니다.</p><div class="mastery-list">${candidates.map((card) => { const definition = CARD_DEFINITIONS[card.definitionId]; return `<button class="mastery-option ${definition.exhausts ? "exhaust" : ""} ${definition.ability === "combo" ? "combo" : ""}" data-action="master-card" data-card-id="${card.id}">${effectMarker(definition)}<span class="market-power">${card.power}</span><span class="market-art">${CARD_ART[definition.id] || "🥋"}</span><strong>${esc(card.name)}</strong><small>${card.zone === ZONES.REST ? "버린 카드" : "이번 대련"} · 제거 후 ${card.remainingReusable}장</small></button>`; }).join("")}</div></div></div>`;
   }
   if (state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === human.id) {
     return `<div class="modal"><div class="modal-box"><span class="result-icon">💪</span><h2>패배 보상</h2><p>경험치를 사용할 방법을 선택하세요.</p><button class="primary" data-action="toggle-market">기술 수련소 열기</button><div class="modal-actions"><button data-action="train-fame" ${human.experience >= state.rules.trainingExperienceCost ? "" : "disabled"}>경험치 5 → 명성 1</button><button data-action="rest">경험치 보존</button></div></div></div>`;

@@ -63,6 +63,7 @@ test("winner chooses either fame or mastery, including just played normal card",
   state = playFirstCard(state, "player-3");
   const candidates = getMasteryCandidates(state, "player-1");
   assert.ok(candidates.some((card) => card.zone === "play" && card.power === 5));
+  assert.match(render(state, { screen: "game", panel: null }), /없앨 수 있는 카드/);
   state = chooseWinnerReward(state, "mastery");
   state = masterCard(state, candidates.find((card) => card.zone === "play").id);
   assert.equal(state.players[0].fame, 0);
@@ -128,20 +129,12 @@ test("combo chains add power and exhaust combo-revealed 9 or 20", () => {
   assert.ok(state.players[0].consumed.some((card) => CARD_DEFINITIONS[card.definitionId].power === 9));
 });
 
-test("2 player setup inserts panda master and panda can win", () => {
-  let state = createGame({ playerCount: 2, seed: 8 });
-  assert.ok(state.players.some((player) => player.neutral && player.name === "판다 사범"));
-  const panda = state.players.find((player) => player.neutral);
-  panda.fame = 49;
-  state = setOrder(state, panda.id);
-  panda.deck = [createCardInstance("start_5", panda.id, "test")];
-  state.players.find((player) => player.id === "player-2").hand = [createCardInstance("start_1", "player-2", "test")];
-  state.players.find((player) => player.id === "player-1").hand = [createCardInstance("start_1", "player-1", "test")];
-  state = playCard(state, panda.id);
-  state = playFirstCard(state, "player-2");
-  state = playFirstCard(state, "player-1");
-  assert.equal(state.phase, PHASES.GAME_OVER);
-  assert.equal(state.winnerId, panda.id);
+test("2 player setup uses one human and one regular AI without panda master", () => {
+  const state = createGame({ playerCount: 2, seed: 8 });
+  assert.equal(state.players.length, 2);
+  assert.equal(state.players.filter((player) => player.human).length, 1);
+  assert.equal(state.players.filter((player) => player.ai).length, 1);
+  assert.equal(state.players.some((player) => player.neutral), false);
 });
 
 test("human loser reward UI exposes card training and mastery wording includes deck removal", () => {
@@ -157,4 +150,19 @@ test("human loser reward UI exposes card training and mastery wording includes d
   assert.match(html, /패배 보상/);
   assert.match(html, /data-action="buy"/);
   assert.match(html, /기술 체득\(덱에서 제거\)/);
+});
+
+test("my card panel shows deck and discarded cards while a human turn highlights the hand", () => {
+  const state = createGame({ playerCount: 2, seed: 10 });
+  const human = state.players.find((player) => player.human);
+  human.rest.push(createCardInstance("start_1", human.id, "test"));
+  state.phase = PHASES.WAITING_FOR_CARD;
+  state.actingPlayerId = human.id;
+  state.inputLocked = false;
+
+  const html = render(state, { screen: "game", panel: "cards" });
+  assert.match(html, /덱에 남은 카드/);
+  assert.match(html, /버린 카드 · 휴식 더미/);
+  assert.match(html, /hand-panel ready/);
+  assert.match(html, /내 차례 · 기술 선택/);
 });

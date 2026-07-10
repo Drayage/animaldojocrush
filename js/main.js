@@ -1,11 +1,11 @@
-import { APP_VERSION } from "./app-config.js?v=20260710-5";
+import { APP_VERSION } from "./app-config.js?v=20260710-6";
 import { initAudio, playSfx } from "./audio.js";
 import { mountErrorOverlay, mountVersionBadge } from "./devtools.js";
 import { saveGame, loadGame, clearGame } from "./storage.js";
 import { PASTEL as palette } from "./palettes.js";
 import { getAiIntent } from "./ai.js";
 import { chooseWinnerReward, createGame, loserAction, masterCard, playCard, reviveGame, setInputLocked } from "./engine.js";
-import { render } from "./ui.js?v=20260710-5";
+import { render } from "./ui.js?v=20260710-6";
 
 const gameArea = document.querySelector("#game-area");
 const actionBar = document.querySelector("#action-bar");
@@ -13,14 +13,15 @@ mountErrorOverlay();
 mountVersionBadge();
 initAudio();
 
-const saved = reviveGame(loadGame({ acceptOldVersion: false, maxAgeMs: 30 * 24 * 3600e3 }));
+const restored = reviveGame(loadGame({ acceptOldVersion: false, maxAgeMs: 30 * 24 * 3600e3 }));
+const saved = restored?.players.some((player) => player.neutral) ? null : restored;
 let state = saved || createGame({ playerCount: 2 });
 let ui = { screen: saved ? "game" : "start", panel: null, selectedPlayers: state.settings?.playerCount || 2, hasSave: Boolean(saved) };
 let aiTimer = null;
 let aiRunning = false;
 
 function stableSave() { saveGame({ ...state, inputLocked: false }); ui.hasSave = true; }
-function draw() { gameArea.innerHTML = render(state, ui); actionBar.innerHTML = ui.screen === "game" ? `<button data-action="toggle-market">🥋 기술</button><button data-action="toggle-log">📜 기록</button><button data-action="show-start">☰ 메뉴</button>` : ""; }
+function draw() { gameArea.innerHTML = render(state, ui); actionBar.innerHTML = ui.screen === "game" ? `<button data-action="toggle-cards">🂠 내 카드</button><button data-action="toggle-market">🥋 기술</button><button data-action="toggle-log">📜 기록</button><button data-action="show-start">☰ 메뉴</button>` : ""; }
 function setState(next, { save = true } = {}) { state = next; draw(); if (save) stableSave(); runAiIfNeeded(); }
 function startGame(playerCount) { clearTimeout(aiTimer); aiRunning = false; clearGame(); state = createGame({ playerCount }); ui = { ...ui, screen: "game", panel: null, selectedPlayers: playerCount, hasSave: true }; setState(state); }
 
@@ -50,12 +51,13 @@ function handleClick(event) {
   const button = event.target.closest("[data-action]");
   if (!button) return;
   const action = button.dataset.action;
-  if (state.inputLocked && !["toggle-market", "toggle-log", "show-start", "close-panel"].includes(action)) return;
+  if (state.inputLocked && !["toggle-cards", "toggle-market", "toggle-log", "show-start", "close-panel"].includes(action)) return;
   if (action === "select-players") { ui.selectedPlayers = Number(button.dataset.count); draw(); }
   if (action === "start-game") startGame(ui.selectedPlayers);
   if (action === "continue-game") { ui.screen = "game"; ui.panel = null; draw(); runAiIfNeeded(); }
   if (action === "show-start") { ui.screen = "start"; ui.panel = null; clearTimeout(aiTimer); aiRunning = false; draw(); }
   if (action === "toggle-market") { ui.panel = ui.panel === "market" ? null : "market"; draw(); }
+  if (action === "toggle-cards") { ui.panel = ui.panel === "cards" ? null : "cards"; draw(); }
   if (action === "toggle-log") { ui.panel = ui.panel === "log" ? null : "log"; draw(); }
   if (action === "close-panel") { ui.panel = null; draw(); }
   if (action === "play-card") dispatch({ type: "PLAY_CARD", playerId: button.dataset.playerId, cardId: button.dataset.cardId });

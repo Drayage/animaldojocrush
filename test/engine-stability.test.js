@@ -12,13 +12,10 @@ function setOrder(state, firstId) {
   };
 }
 
-test("판다 사범이 카드를 낼 때 RNG 상태가 전진한다", () => {
-  let state = createGame({ playerCount: 2, seed: 100 });
-  const panda = state.players.find((player) => player.neutral);
-  state = setOrder(state, panda.id);
-  const before = state.rngSeed;
-  state = playCard(state, panda.id);
-  assert.notEqual(state.rngSeed, before);
+test("2인전은 일반 플레이어 두 명이 손패 3장으로 시작한다", () => {
+  const state = createGame({ playerCount: 2, seed: 100 });
+  assert.equal(state.players.length, 2);
+  assert.ok(state.players.every((player) => !player.neutral && player.hand.length === 3));
 });
 
 test("일반 플레이어 모두의 손패가 비었을 때만 수련 주기를 보충한다", () => {
