@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PHASES } from "../js/data/constants.js";
-import { chooseWinnerReward, createCardInstance, createGame, finishDuel, playCard, reviveGame } from "../js/engine.js";
+import { chooseWinnerReward, createCardInstance, createGame, finishDuel, loserAction, playCard, reviveGame } from "../js/engine.js";
 
 function setOrder(state, firstId) {
   return {
@@ -83,7 +83,6 @@ test("연계 자세로 공개된 소모 기술은 대련 종료 후 소모 영�
   state = chooseWinnerReward(state, "fame");
   while (state.phase === PHASES.WAITING_FOR_LOSER_ACTION) {
     const loser = state.pending.loserActionPlayerId;
-    const { loserAction } = await import("../js/engine.js");
     state = loserAction(state, loser, { type: "rest" });
   }
   assert.ok(state.players[0].consumed.some((card) => card.definitionId === "headbutt"));
