@@ -63,8 +63,34 @@ function newGameSettings(ui) {
   return `<section class="new-game-settings"><h3>게임 설정</h3><div class="setting-row"><label for="target-fame">목표 명성</label><div class="target-options">${[30, 42, 50, 60].map((score) => `<button class="${target === score ? "selected" : ""}" data-action="select-target" data-score="${score}">${score}</button>`).join("")}<input id="target-fame" data-setting="target-fame" type="number" inputmode="numeric" min="12" max="100" value="${target}" aria-label="목표 명성 직접 입력" /></div></div><div class="setting-row"><span>6점 선착 보상</span><button class="setting-toggle" data-action="toggle-milestone-mode" aria-pressed="${ui.milestoneMode !== false}">${ui.milestoneMode !== false ? "사용" : "미사용"}</button></div>${audioToggles(ui)}</section>`;
 }
 
+function offlineSetup(ui) {
+  return `<p>플레이 인원을 선택하세요. 나머지 참가자는 일반 AI가 맡습니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div>${newGameSettings(ui)}<button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}`;
+}
+
+function onlineSetup(ui) {
+  return `<p>친구와 2~4인 대전을 시작합니다. 방장이 인원과 규칙을 결정합니다.</p><div class="setting-row"><span>온라인 인원</span><div class="player-count online-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div></div>${newGameSettings(ui)}<button class="primary big" data-action="create-online-room" ${ui.onlineBusy ? "disabled" : ""}>온라인 방 만들기</button><div class="online-divider"><span>또는</span></div><label class="room-code-field"><span>참가 코드</span><input data-setting="room-code" inputmode="text" maxlength="6" value="${esc(ui.roomCodeInput || "")}" placeholder="예: A7K2Q" autocomplete="off" /></label><button class="secondary big" data-action="join-online-room" ${ui.onlineBusy ? "disabled" : ""}>코드로 참가</button>${ui.hasRejoin ? `<button class="text-button" data-action="rejoin-online-room">이전 온라인 방 다시 연결</button>` : ""}${ui.onlineError ? `<p class="online-error" role="alert">${esc(ui.onlineError)}</p>` : ""}`;
+}
+
 function startScreen(state, ui) {
-  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><p>플레이 인원을 선택하세요. 나머지 참가자는 일반 AI가 맡습니다.</p><div class="player-count">${[2, 3, 4].map((count) => `<button class="${ui.selectedPlayers === count ? "selected" : ""}" data-action="select-players" data-count="${count}">${count}인</button>`).join("")}</div>${newGameSettings(ui)}<button class="primary big" data-action="start-game">대회 시작</button>${ui.hasSave ? `<button class="secondary big" data-action="continue-game">이어하기</button>` : ""}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
+  const online = ui.playMode === "online";
+  return `<main class="start-screen"><section class="hero-card"><div class="hero-animals">🐰 🐱 🐻 🦝</div><p class="eyebrow">FOREST MARTIAL ARTS</p><h1>우당탕<br>동물도장</h1><p>대련에서 이기면 명성을 얻고,<br>지면 경험을 얻는다.</p></section><section class="start-card"><h2>새 대회</h2><div class="play-mode" role="group" aria-label="플레이 방식"><button class="${online ? "" : "selected"}" data-action="select-play-mode" data-mode="offline">AI 대전</button><button class="${online ? "selected" : ""}" data-action="select-play-mode" data-mode="online">온라인 2~4인</button></div>${online ? onlineSetup(ui) : offlineSetup(ui)}<button class="text-button" data-action="toggle-rules">규칙 보기</button></section>${rulesDialog()}</main>`;
+}
+
+function lobbyScreen(ui) {
+  const room = ui.onlineRoom;
+  const players = Object.values(room?.players || {}).sort((a, b) => (a.seat || 0) - (b.seat || 0));
+  const expected = room?.state?.settings?.playerCount || 2;
+  const gamePlayers = room?.state?.players || [];
+  const seats = Array.from({ length: expected }, (_, seat) => {
+    const player = players.find((item) => item.seat === seat);
+    const gamePlayer = gamePlayers[seat];
+    const ai = !player && gamePlayer?.ai;
+    const ready = ai || Boolean(player && player.online !== false);
+    return { seat, player, gamePlayer, ai, ready };
+  });
+  const readySeats = seats.filter((seat) => seat.ready).length;
+  const ready = readySeats === expected;
+  return `<main class="lobby-screen"><section class="lobby-box"><span class="eyebrow">ONLINE DOJO</span><h1>온라인 대기실</h1><p>친구에게 참가 코드를 알려 주세요. 좌석 ${readySeats}/${expected}</p><button class="room-code" data-action="copy-room-code" aria-label="방 코드 복사"><strong>${esc(ui.onlineCode)}</strong><span>복사</span></button><div class="lobby-players">${seats.map(({ seat, player, gamePlayer, ai }) => { const offline = player?.online === false; const title = player ? player.name : ai ? `${gamePlayer.name} AI` : "참가자 기다리는 중"; const status = player ? offline ? "연결 끊김" : "사람 · 입장 완료" : ai ? "AI 참가자" : "친구 참가 또는 AI 추가"; const control = ui.onlineIsHost && seat > 0 ? ai ? `<button class="lobby-seat-action" data-action="remove-online-ai" data-seat="${seat}">AI 빼기</button>` : !player || offline ? `<button class="lobby-seat-action" data-action="add-online-ai" data-seat="${seat}">${offline ? "AI로 교체" : "AI 추가"}</button>` : "" : ""; return `<article class="lobby-player ${player && !offline ? "joined" : ai ? "ai" : "empty"}"><span>${gamePlayer?.portrait || "🥋"}</span><div><strong>${esc(title)}</strong><small>${status}</small></div>${control}</article>`; }).join("")}</div><div class="lobby-rules"><span>총 좌석 <b>${expected}명</b></span><span>목표 명성 <b>${room?.state?.rules?.targetFame || 50}</b></span><span>선착 보상 <b>${room?.state?.rules?.milestoneMode ? "사용" : "미사용"}</b></span></div>${ui.onlineIsHost ? `<button class="primary big" data-action="start-online-game" ${ready && !ui.onlineBusy ? "" : "disabled"}>${ready ? "온라인 대회 시작" : `${expected - readySeats}좌석 채우는 중`}</button>` : `<p class="waiting-message">방장이 참가자와 AI 구성을 마치고 시작하기를 기다립니다.</p>`}<button class="secondary" data-action="leave-online-room">방 나가기</button>${ui.onlineError ? `<p class="online-error" role="alert">${esc(ui.onlineError)}</p>` : ""}</section></main>`;
 }
 
 function seatAssignments(state) {
@@ -302,6 +328,7 @@ export function render(state, ui) {
     panel: state.phase === PHASES.WAITING_FOR_LOSER_ACTION ? "market" : null
   };
   if (view.screen === "start") return startScreen(state, view);
+  if (view.screen === "lobby") return lobbyScreen(view);
   const vanguard = state.players.find((player) => player.id === state.vanguardPlayerId);
-  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info"><span>대련 <b>${state.duelNumber}</b></span><span>목표 <b>${state.rules.targetFame}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header>${rewardDecisionHtml(state)}<section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
+  return `<main class="game-shell"><header class="game-header"><div><span class="eyebrow">수련 ${state.trainingCycle}</span><h1>우당탕 동물도장</h1></div><div class="round-info">${view.onlineCode ? `<span class="online-room-chip">방 <b>${esc(view.onlineCode)}</b></span>` : ""}<span class="duel-chip">대련 <b>${state.duelNumber}</b></span><span>목표 <b>${state.rules.targetFame}</b></span><span title="선봉">선봉 ${vanguard?.portrait}</span><button data-action="toggle-rules" aria-label="규칙 보기" title="규칙 보기">?</button></div></header>${rewardDecisionHtml(state)}<section class="game-main">${tableHtml(state)}${handHtml(state)}</section>${overlayPanel(state, view)}${view.panel ? "" : modalHtml(state)}${rulesDialog()}</main>`;
 }

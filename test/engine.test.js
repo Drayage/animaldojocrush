@@ -357,3 +357,76 @@ test("card UI uses the generated game artwork sprite", () => {
   assert.match(html, /card-illustration art-c/);
   assert.doesNotMatch(html, /class="market-art" aria-hidden="true">/);
 });
+
+test("online setup offers 2 to 4 players, room creation, and code joining", () => {
+  const state = createGame({ playerCount: 2, seed: 22 });
+  const html = render(state, { screen: "start", playMode: "online", selectedPlayers: 4, selectedTargetFame: 50, milestoneMode: true, audio: { bgmEnabled: false, sfxEnabled: true } });
+  assert.match(html, /온라인 2~4인/);
+  assert.match(html, /2인/);
+  assert.match(html, /3인/);
+  assert.match(html, /4인/);
+  assert.match(html, /data-action="create-online-room"/);
+  assert.match(html, /data-action="join-online-room"/);
+  assert.match(html, /data-setting="room-code"/);
+});
+
+test("online lobby waits for every configured seat before host can start", () => {
+  const state = createGame({ playerCount: 4, seed: 23 });
+  state.players.forEach((player) => { player.human = true; player.ai = false; });
+  const html = render(state, {
+    screen: "lobby",
+    onlineCode: "A7K2Q",
+    onlineIsHost: true,
+    onlineBusy: false,
+    onlineRoom: {
+      state,
+      players: {
+        "player-1": { id: "player-1", name: "토끼 무술가", seat: 0, online: true },
+        "player-2": { id: "player-2", name: "고양이 무술가", seat: 1, online: true },
+      },
+    },
+  });
+  assert.match(html, /좌석 2\/4/);
+  assert.match(html, /2좌석 채우는 중/);
+  assert.match(html, /data-action="start-online-game" disabled/);
+});
+
+test("online lobby lets the host fill remaining seats with AI", () => {
+  const state = createGame({ playerCount: 4, seed: 24 });
+  state.players[0].human = true;
+  state.players[0].ai = false;
+  const html = render(state, {
+    screen: "lobby",
+    onlineCode: "B8M3R",
+    onlineIsHost: true,
+    onlineBusy: false,
+    onlineRoom: {
+      state,
+      players: { "player-1": { id: "player-1", name: "토끼 무술가", seat: 0, online: true } },
+    },
+  });
+  assert.match(html, /고양이 무술가 AI/);
+  assert.match(html, /곰 무술가 AI/);
+  assert.match(html, /너구리 무술가 AI/);
+  assert.match(html, /data-action="remove-online-ai"/);
+  assert.match(html, /data-action="start-online-game" >/);
+});
+
+test("Firebase-style saves restore collections omitted when they are empty", () => {
+  const raw = structuredClone(createGame({ playerCount: 4, seed: 25 }));
+  delete raw.pending;
+  delete raw.milestones;
+  delete raw.rewardHistory;
+  delete raw.duel.plays;
+  delete raw.duel.experienceGains;
+  delete raw.players[0].rest;
+  delete raw.players[0].mastered;
+  delete raw.players[0].consumed;
+  delete raw.players[0].played;
+  const restored = reviveGame(raw);
+  assert.deepEqual(restored.pending.loserQueue, []);
+  assert.deepEqual(restored.milestones.history, []);
+  assert.deepEqual(restored.duel.plays, []);
+  assert.deepEqual(restored.players[0].rest, []);
+  assert.deepEqual(restored.players[0].mastered, []);
+});
