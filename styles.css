@@ -472,6 +472,40 @@ dialog::backdrop {
   background: rgba(45, 36, 27, 0.42);
 }
 
+.online-join-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.online-join-row input {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 10px;
+  border: 2px solid #6d4525;
+  border-radius: 8px;
+  font: inherit;
+  text-transform: uppercase;
+  background: #fffdf6;
+  color: #241b14;
+}
+
+.room-code {
+  font-size: 1.6em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  padding: 8px 12px;
+  border: 2px dashed #b7834b;
+  border-radius: 8px;
+  text-align: center;
+  background: #fff1ad;
+}
+
+.online-error {
+  color: #a3271b;
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .app {
     grid-template-columns: 1fr;

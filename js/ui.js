@@ -19,19 +19,19 @@ function cardHtml(card, { disabled = false, action = "", compact = false } = {})
     </button>`;
 }
 
-function playerPanel(state, player) {
-  const isHuman = player.human;
+function playerPanel(state, player, viewerId) {
+  const isMe = player.id === viewerId;
   const isActing = state.actingPlayerId === player.id && state.phase === PHASES.WAITING_FOR_CARD;
   const isVanguard = state.vanguardPlayerId === player.id;
   const isLoserAction = state.pending.loserActionPlayerId === player.id;
   const play = state.duel.plays.find((item) => item.playerId === player.id);
   return `
-    <section class="player ${isHuman ? "me" : ""} ${isActing ? "acting" : ""} ${isLoserAction ? "choosing" : ""}" style="--accent:${player.color}">
+    <section class="player ${isMe ? "me" : ""} ${isActing ? "acting" : ""} ${isLoserAction ? "choosing" : ""}" style="--accent:${player.color}">
       <div class="avatar">${player.portrait}</div>
       <div class="player-main">
         <div class="player-title">
-          <strong>${isHuman ? "나 · " : ""}${esc(player.name)}</strong>
-          ${isHuman ? `<span class="badge me-badge">나</span>` : ""}
+          <strong>${isMe ? "나 · " : ""}${esc(player.name)}</strong>
+          ${isMe ? `<span class="badge me-badge">나</span>` : ""}
           ${isVanguard ? `<span class="badge">선봉</span>` : ""}
           ${player.neutral ? `<span class="badge neutral">자동</span>` : ""}
         </div>
@@ -44,19 +44,19 @@ function playerPanel(state, player) {
         </div>
       </div>
       <div class="player-side">
-        <span>${player.human ? `손패 ${player.hand.length}` : player.neutral ? "사범 덱" : `손패 ${player.hand.length}`}</span>
+        <span>${player.neutral ? "사범 덱" : `손패 ${player.hand.length}`}</span>
         <b>${play ? `위력 ${play.totalPower}` : isActing ? "차례" : "대기"}</b>
       </div>
     </section>`;
 }
 
-function arenaHtml(state) {
+function arenaHtml(state, viewerId) {
   const winner = state.duel.winnerId ? state.players.find((player) => player.id === state.duel.winnerId) : null;
   const plays = state.duel.plays.map((play) => {
     const player = state.players.find((item) => item.id === play.playerId);
     return `
       <div class="play-stack ${winner?.id === player.id ? "winner" : ""}">
-        <div class="play-owner">${play.order + 1}. ${player.human ? "나" : esc(player.name)}</div>
+        <div class="play-owner">${play.order + 1}. ${player.id === viewerId ? "나" : esc(player.name)}</div>
         <div class="combo-line">${play.cards.map((card) => cardHtml(card, { disabled: true, compact: true })).join("")}</div>
         <div class="final-power">최종 위력 ${play.totalPower}</div>
       </div>`;
@@ -68,13 +68,13 @@ function arenaHtml(state) {
         <span>현재 최고 위력 ${state.duel.highestPower}</span>
       </div>
       <div class="plays">${plays || `<div class="empty">선봉의 첫 기술을 기다리는 중</div>`}</div>
-      ${winner ? `<div class="victory">대련 승리: ${winner.human ? "나" : `${winner.portrait} ${esc(winner.name)}`}</div>` : ""}
+      ${winner ? `<div class="victory">대련 승리: ${winner.id === viewerId ? "나" : `${winner.portrait} ${esc(winner.name)}`}</div>` : ""}
     </section>`;
 }
 
-function handHtml(state) {
-  const human = state.players.find((player) => player.human);
-  const canPlay = state.phase === PHASES.WAITING_FOR_CARD && state.actingPlayerId === human.id && !state.inputLocked;
+function handHtml(state, viewerId) {
+  const me = state.players.find((player) => player.id === viewerId);
+  const canPlay = state.phase === PHASES.WAITING_FOR_CARD && state.actingPlayerId === me.id && !state.inputLocked;
   return `
     <section class="hand-panel">
       <div class="section-title">
@@ -82,9 +82,9 @@ function handHtml(state) {
         <span>${canPlay ? "낼 기술을 고르세요" : "차례를 기다리는 중"}</span>
       </div>
       <div class="hand">
-        ${human.hand.map((card) => cardHtml(card, {
+        ${me.hand.map((card) => cardHtml(card, {
           disabled: !canPlay,
-          action: `data-action="play-card" data-player-id="${human.id}" data-card-id="${card.id}"`
+          action: `data-action="play-card" data-player-id="${me.id}" data-card-id="${card.id}"`
         })).join("") || `<div class="empty">손패가 비었습니다.</div>`}
       </div>
     </section>`;
@@ -105,21 +105,21 @@ function marketCardHtml(state, activeLoser, id, { modal = false } = {}) {
     </button>`;
 }
 
-function marketHtml(state) {
+function marketHtml(state, viewerId) {
   const activeLoser = state.players.find((player) => player.id === state.pending.loserActionPlayerId);
-  const humanCanBuy = state.phase === PHASES.WAITING_FOR_LOSER_ACTION && activeLoser?.human && !state.inputLocked;
+  const meCanBuy = state.phase === PHASES.WAITING_FOR_LOSER_ACTION && activeLoser?.id === viewerId && !state.inputLocked;
   return `
     <section class="market">
       <div class="section-title">
         <h2>기술 수련소</h2>
-        <span>${humanCanBuy ? `${activeLoser.experience} 경험치` : "패배 보상 때 수련 가능"}</span>
+        <span>${meCanBuy ? `${activeLoser.experience} 경험치` : "패배 보상 때 수련 가능"}</span>
       </div>
-      <div class="market-grid">${MARKET_CARD_IDS.map((id) => marketCardHtml(state, humanCanBuy ? activeLoser : null, id)).join("")}</div>
+      <div class="market-grid">${MARKET_CARD_IDS.map((id) => marketCardHtml(state, meCanBuy ? activeLoser : null, id)).join("")}</div>
     </section>`;
 }
 
-function modalHtml(state) {
-  const human = state.players.find((player) => player.human);
+function modalHtml(state, viewerId) {
+  const human = state.players.find((player) => player.id === viewerId);
   if (state.inputLocked) {
     return `<div class="modal"><div class="modal-box small"><h2>진행 중</h2><p>AI가 행동하는 중입니다.</p></div></div>`;
   }
@@ -172,20 +172,56 @@ function modalHtml(state) {
     return `
       <div class="modal"><div class="modal-box">
         <h2>우승!</h2>
-        <p>${winner.portrait} ${winner.human ? "나" : esc(winner.name)}이 숲속 최고의 무술가가 되었습니다.</p>
+        <p>${winner.portrait} ${winner.id === viewerId ? "나" : esc(winner.name)}이 숲속 최고의 무술가가 되었습니다.</p>
         <button data-action="new-game">새 대회</button>
       </div></div>`;
   }
   return "";
 }
 
-export function render(state) {
+function onlineModalHtml(online = { mode: "offline" }) {
+  if (online.mode === "connecting") {
+    return `<h2>온라인 대전</h2><p>연결하는 중입니다...</p><button data-action="close-online">닫기</button>`;
+  }
+  if (online.mode === "host" || online.mode === "guest") {
+    const roleLabel = online.mode === "host" ? "방장" : "참가자";
+    const statusText = !online.ready
+      ? "상대를 기다리는 중입니다. 코드를 공유하세요."
+      : online.opponentOnline === false
+        ? "상대의 연결이 끊겼습니다. 재접속을 기다리는 중..."
+        : "상대와 연결되었습니다.";
+    return `
+      <h2>온라인 대전 · ${roleLabel}</h2>
+      <p>참가 코드</p>
+      <p class="room-code">${esc(online.code)}</p>
+      <p>${statusText}</p>
+      <div class="modal-actions">
+        <button data-action="leave-online">온라인 대전 나가기</button>
+        <button data-action="close-online">닫기</button>
+      </div>`;
+  }
+  return `
+    <h2>온라인 대전</h2>
+    <p>다른 기기에 있는 상대와 실시간으로 대전합니다. (실제 대전에는 Firebase 설정이 필요합니다.)</p>
+    <div class="modal-actions">
+      <button data-action="online-create">방 만들기</button>
+    </div>
+    <div class="online-join-row">
+      <input type="text" id="online-code-input" maxlength="8" autocapitalize="characters" placeholder="참가 코드 입력" value="${esc(online.joinDraft || "")}" />
+      <button data-action="online-join">입장하기</button>
+    </div>
+    ${online.error ? `<p class="online-error">${esc(online.error)}</p>` : ""}
+    <button data-action="close-online">닫기</button>`;
+}
+
+export function render(state, viewerId, online) {
+  const resolvedViewerId = viewerId ?? state.players.find((player) => player.human)?.id;
   const vanguard = state.players.find((player) => player.id === state.vanguardPlayerId);
-  const human = state.players.find((player) => player.human);
+  const me = state.players.find((player) => player.id === resolvedViewerId);
   const statusText = state.phase === PHASES.WAITING_FOR_CARD
-    ? state.actingPlayerId === human.id ? "내 차례" : "상대 차례"
-    : state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === human.id ? "내 패배 보상"
-    : state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === human.id ? "내 승자 보상"
+    ? state.actingPlayerId === me.id ? "내 차례" : "상대 차례"
+    : state.phase === PHASES.WAITING_FOR_LOSER_ACTION && state.pending.loserActionPlayerId === me.id ? "내 패배 보상"
+    : state.phase === PHASES.WAITING_FOR_WINNER_REWARD && state.duel.winnerId === me.id ? "내 승자 보상"
     : "진행 중";
   return `
     <main class="app">
@@ -198,16 +234,17 @@ export function render(state) {
           <span class="status-pill">${statusText}</span>
           <span>수련 ${state.trainingCycle}</span>
           <span>대련 ${state.duelNumber}</span>
-          <span>선봉 ${vanguard?.human ? "나" : `${vanguard?.portrait} ${esc(vanguard?.name || "")}`}</span>
+          <span>선봉 ${vanguard?.id === resolvedViewerId ? "나" : `${vanguard?.portrait} ${esc(vanguard?.name || "")}`}</span>
           <button data-action="new-game">새 게임</button>
+          <button data-action="toggle-online">${online && online.mode !== "offline" ? "온라인 방" : "온라인"}</button>
           <button data-action="toggle-rules">규칙</button>
         </div>
       </header>
-      <section class="players">${state.players.map((player) => playerPanel(state, player)).join("")}</section>
+      <section class="players">${state.players.map((player) => playerPanel(state, player, resolvedViewerId)).join("")}</section>
       <section class="main-column">
-        ${arenaHtml(state)}
-        ${handHtml(state)}
-        ${marketHtml(state)}
+        ${arenaHtml(state, resolvedViewerId)}
+        ${handHtml(state, resolvedViewerId)}
+        ${marketHtml(state, resolvedViewerId)}
       </section>
       <aside class="log"><h2>도장 기록</h2>${state.log.map((item) => `<p>${esc(item.message)}</p>`).join("")}</aside>
       <dialog id="rules-modal">
@@ -217,6 +254,7 @@ export function render(state) {
         <p>패자는 최종 위력만큼 경험치를 얻고 기술 수련, 명성 훈련, 쉬어가기를 선택합니다.</p>
         <button data-action="close-rules">닫기</button>
       </dialog>
-      ${modalHtml(state)}
+      <dialog id="online-modal">${onlineModalHtml(online)}</dialog>
+      ${modalHtml(state, resolvedViewerId)}
     </main>`;
 }
