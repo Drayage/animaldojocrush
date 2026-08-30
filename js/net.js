@@ -122,12 +122,46 @@ export async function leaveRoom(code, playerId) {
   clearRejoin();
 }
 
+// Firebase RTDB는 빈 배열([])을 쓰면 그 키가 통째로 사라진다 — 읽을 때는
+// undefined로 돌아온다. duel.plays/log와 각 플레이어의 deck/hand/rest/
+// mastered/consumed/played는 게임 도중 실제로 자주 빈 배열이 되는 필드라서
+// (새 대회 시작 직후 duel.plays, 게임 시작 직후 log 등), room.state를 그대로
+// 렌더하면 ui.js의 무가드 .length/.map 호출이 게스트 화면에서만 터진다
+// (호스트는 로컬 in-memory state를 그대로 쓰므로 이 라운드트립을 안 거친다).
+// subscribeRoom이 콜백에 넘기기 전에 이 필드들을 복원해 둔다.
+function hydratePlayer(player) {
+  if (!player) return player;
+  player.deck = player.deck || [];
+  player.hand = player.hand || [];
+  player.rest = player.rest || [];
+  player.mastered = player.mastered || [];
+  player.consumed = player.consumed || [];
+  player.played = player.played || [];
+  return player;
+}
+
+function hydrateRoomState(state) {
+  if (!state) return state;
+  state.log = state.log || [];
+  if (state.duel) state.duel.plays = state.duel.plays || [];
+  if (state.pending) {
+    state.pending.masteryCards = state.pending.masteryCards || [];
+    state.pending.loserQueue = state.pending.loserQueue || [];
+  }
+  if (Array.isArray(state.players)) state.players.forEach(hydratePlayer);
+  return state;
+}
+
 // ── (4) 구독: 콜백이 받은 서버 상태만 렌더할 것 ─────────────────────
 // onValue는 여러 변경이 합쳐져(coalesced) 올 수 있다 — 이벤트 로그/리플레이는
 // diff가 아니라 상태에 포함된 누적 기록으로 관리할 것.
 export function subscribeRoom(code, onRoom) {
   const r = ref(ensureDb(), roomsPath(code));
-  onValue(r, (snap) => onRoom(snap.val()));
+  onValue(r, (snap) => {
+    const room = snap.val();
+    if (room) hydrateRoomState(room.state);
+    onRoom(room);
+  });
   return () => off(r);
 }
 
