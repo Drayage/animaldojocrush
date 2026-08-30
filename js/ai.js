@@ -1,6 +1,13 @@
 import { CARD_DEFINITIONS, cardDef } from "./data/cards.js";
 import { PHASES } from "./data/constants.js";
-import { getMasteryCandidates } from "./engine.js";
+import { createRng, getMasteryCandidates } from "./engine.js";
+
+// AI의 확률적 선택도 state.rngSeed에서만 뽑는다 (Math.random 금지) — 같은 state에서는
+// 항상 같은 선택을 하도록 해서 호스트가 나중에 재현/검증할 수 있게 한다. 두 결정 지점이
+// 같은 duel에서 같은 rngSeed를 공유해도 서로 다른 결정이 나오도록 각기 다른 상수로 섞는다.
+function decisionRng(state, salt) {
+  return createRng((state.rngSeed ^ salt) >>> 0)();
+}
 
 function currentBestPower(state) {
   return state.duel.plays.length ? Math.max(...state.duel.plays.map((play) => play.totalPower)) : -1;
@@ -23,7 +30,7 @@ export function chooseAiWinnerReward(state, player) {
   const candidates = getMasteryCandidates(state, player.id);
   if (!candidates.length) return { type: "fame" };
   const weakest = candidates.toSorted((a, b) => a.power - b.power)[0];
-  if (weakest.power <= 3 && weakest.remainingReusable > state.rules.minimumReusableCardsAfterMastery + 1 && Math.random() < 0.45) {
+  if (weakest.power <= 3 && weakest.remainingReusable > state.rules.minimumReusableCardsAfterMastery + 1 && decisionRng(state, 0x9e3779b1) < 0.45) {
     return { type: "mastery", cardId: weakest.id };
   }
   return { type: "fame" };
@@ -39,7 +46,7 @@ export function chooseAiLoserAction(state, player) {
     .filter((def) => def.cost <= player.experience);
   if (!affordable.length) return { type: "rest" };
   const best = affordable.toSorted((a, b) => (b.power / Math.max(1, b.cost)) - (a.power / Math.max(1, a.cost)) || b.power - a.power)[0];
-  if (player.experience < 10 && best.power < 7 && Math.random() < 0.35) return { type: "rest" };
+  if (player.experience < 10 && best.power < 7 && decisionRng(state, 0x1234abcd) < 0.35) return { type: "rest" };
   return { type: "buy", cardDefinitionId: best.id };
 }
 

@@ -97,12 +97,13 @@ function makePlayer(character, index, { human = false, neutral = false } = {}) {
   };
 }
 
-export function createGame({ playerCount = 2, seed = Date.now() } = {}) {
+export function createGame({ playerCount = 2, seed = Date.now(), humanSeatIndexes = [0] } = {}) {
   resetCardIds(1);
   const rng = createRng(seed);
   const normalCount = Math.max(2, Math.min(4, playerCount));
+  const humanSeats = new Set(humanSeatIndexes);
   const normalPlayers = Array.from({ length: normalCount }, (_, index) =>
-    makePlayer(CHARACTERS[index], index, { human: index === 0 })
+    makePlayer(CHARACTERS[index], index, { human: humanSeats.has(index) })
   );
   const players = normalCount === 2
     ? [normalPlayers[0], makePlayer(PANDA_MASTER, 1, { neutral: true }), normalPlayers[1]]
